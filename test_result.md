@@ -223,3 +223,5 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: "Starting comprehensive testing of DriverBuddy PWA application. Will test all core functionality including homepage tabs, manual upload, license management, navigation, and responsive design."
+  - agent: "testing"
+    message: "CRITICAL ISSUE FOUND: Manual Upload tab is unclickable due to background overlay intercepting pointer events. This blocks the entire manual upload functionality. Demo Scan works correctly and creates licenses. View Details buttons are missing from license cards. Header navigation works properly. Mobile responsive design has issues with tab switching."
