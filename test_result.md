@@ -231,18 +231,14 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus:
-    - "Homepage Scan Tab Default Active"
-    - "Demo Scan Button Functionality"
+  current_focus: []
+  stuck_tasks: 
     - "Manual Upload Tab Switch"
     - "Manual Upload Form Submission"
-    - "My Licenses Page Display"
     - "License Detail Page View"
-    - "Header Navigation"
     - "Mobile Responsive Design"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "testing"
