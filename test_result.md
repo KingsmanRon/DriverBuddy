@@ -157,7 +157,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/components/ManualUpload.js"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -167,6 +167,9 @@ frontend:
       - working: false
         agent: "testing"
         comment: "❌ BLOCKED: Cannot test form submission because Manual Upload tab is unclickable due to overlay issue"
+      - working: false
+        agent: "testing"
+        comment: "❌ STILL BLOCKED: Cannot test form submission because Manual Upload tab state is not updating. Tab content never switches to show the form."
 
   - task: "My Licenses Page Display"
     implemented: true
