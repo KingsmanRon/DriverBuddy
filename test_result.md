@@ -223,7 +223,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src"
-    stuck_count: 1
+    stuck_count: 2
     priority: "medium"
     needs_retesting: false
     status_history:
@@ -233,6 +233,9 @@ frontend:
       - working: false
         agent: "testing"
         comment: "❌ PARTIAL FAILURE: Mobile hamburger menu works and contains navigation items, but tab switching fails on mobile due to same overlay issue affecting Manual Upload tab"
+      - working: false
+        agent: "testing"
+        comment: "❌ STILL FAILING: Mobile hamburger menu works correctly, but Manual Upload tab switching fails on mobile with same React state issue as desktop. Tab remains inactive after click."
 
 metadata:
   created_by: "testing_agent"
