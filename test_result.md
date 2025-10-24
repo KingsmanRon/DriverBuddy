@@ -139,7 +139,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/components/ManualUpload.js"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -149,6 +149,9 @@ frontend:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL ISSUE: Manual Upload tab is completely unclickable due to background gradient overlay intercepting pointer events. Tab remains inactive even after multiple click attempts. This blocks entire manual upload functionality."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL ISSUE PERSISTS: Manual Upload tab can be clicked but React state is NOT updating. Tab remains data-state='inactive' after click, preventing content switch. Radix UI Tabs component not receiving proper click events. Manual Upload content never renders (0 Add New License buttons found in DOM). Same issue on mobile."
 
   - task: "Manual Upload Form Submission"
     implemented: true
