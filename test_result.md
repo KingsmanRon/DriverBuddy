@@ -260,10 +260,7 @@ metadata:
 test_plan:
   current_focus: []
   stuck_tasks: 
-    - "Manual Upload Tab Switch"
-    - "Manual Upload Form Submission"
-    - "License Detail Page View"
-    - "Mobile Responsive Design"
+    - "Header Navigation"
   test_all: false
   test_priority: "stuck_first"
 
