@@ -215,9 +215,9 @@ frontend:
 
   - task: "Header Navigation"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/components/Header.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
     needs_retesting: false
     status_history:
@@ -227,6 +227,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ PASSED: Header navigation works correctly. Logo click returns to home, My Licenses navigation works, Home button functions properly"
+      - working: false
+        agent: "testing"
+        comment: "Minor: Header navigation has limited functionality. Home and My Licenses buttons are present and visible, but no proper logo/home link functionality found. Only 1 external link detected (Made with Emergent). Navigation between pages works through the visible Home/My Licenses buttons but lacks traditional logo-based navigation."
 
   - task: "Mobile Responsive Design"
     implemented: true
