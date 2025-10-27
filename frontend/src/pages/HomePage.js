@@ -51,10 +51,10 @@ const HomePage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-12 pb-16">
+      <div className="container mx-auto px-4 -mt-12 pb-16 relative z-20">
         <div className="max-w-3xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-14 bg-card shadow-lg border border-border rounded-xl p-1.5">
+            <TabsList className="grid w-full grid-cols-2 h-14 bg-card shadow-lg border border-border rounded-xl p-1.5 relative z-10">
               <TabsTrigger 
                 value="scan" 
                 className="flex items-center gap-2 text-base font-semibold data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground rounded-lg transition-all duration-300"
@@ -71,7 +71,7 @@ const HomePage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <div className="mt-8">
+            <div className="mt-8 relative z-10">
               <TabsContent value="scan" className="m-0 animate-slide-in">
                 <ScanLicense onLicenseAdded={handleLicenseAdded} />
               </TabsContent>
