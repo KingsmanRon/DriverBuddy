@@ -137,7 +137,7 @@ frontend:
 
   - task: "Manual Upload Tab Switch"
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/components/ManualUpload.js"
     stuck_count: 2
     priority: "high"
@@ -152,6 +152,9 @@ frontend:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL ISSUE PERSISTS: Manual Upload tab can be clicked but React state is NOT updating. Tab remains data-state='inactive' after click, preventing content switch. Radix UI Tabs component not receiving proper click events. Manual Upload content never renders (0 Add New License buttons found in DOM). Same issue on mobile."
+      - working: true
+        agent: "testing"
+        comment: "✅ CRITICAL FIX VERIFIED: Manual Upload tab switching now works perfectly! Tab successfully switches to active state on click, Manual Upload content renders correctly, and Add New License button is present and functional. Works on both desktop and mobile viewports."
 
   - task: "Manual Upload Form Submission"
     implemented: true
