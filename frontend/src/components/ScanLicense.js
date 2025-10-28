@@ -13,7 +13,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const barkoderRef = useRef(null);
   const streamRef = useRef(null);
 
-  const BARKODER_LICENSE_KEY = 'PEmBIohr9EZXgCkySoetbwP4gvOfMcGzgxKPL2X6uqNa5dug9oEmBFS54Ouy1T_9dqteqokJM0X8m_juthJ6SZbQ3GpPkJqJ4-kGFgSxCaw48QSVTc-lvtLOvG6NLmTrb-H3ZWQFts9xyLYbw0kb1sszQW_gmQuUfSqpbpLXztUzMg61cql-zF1RWsNMrEHDukOCsJjROrKyXIetfkK0ijwQfvUPJT3mJTocl_2QRBwCNo9uD1zSd7Eue7bzyPCpxUYnYfMq7RduRezfyrTPLQ..';
+  const BARKODER_LICENSE_KEY = 'PEmBIohr9EZXgCkySoetbwP4gvOfMcGzgxKPL2X6uqPV7ammESbLuFjLw_1d4gbhZpvZ0Yu17Qs8QmgzGFm6v7OukQjgzwV5O7bf2MnowdRu7h87iHZICq3UhLXrK2pmnMSXYl4FqdJxO602i3vWvNdUl0lPXnLh7wiycCjHnSKYJ9hGxdLTc5iQC3DnvQ8IDd3mKs4CggFj_RC0PeNQM-YRzCJFRbW4Tfs8gSLzVyVKewhztx1sOa6sEkDTRpXHrgIZ-PafVCISWGNZbfQVYqHOmNvFu9z3WkxmmF8c8Nc.';
 
   useEffect(() => {
     const script = document.createElement('script');
