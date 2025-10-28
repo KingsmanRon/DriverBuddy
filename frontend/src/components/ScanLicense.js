@@ -175,7 +175,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
     return expiryDate.toISOString().split('T')[0];
   };
 
-  // Handle image upload and actual barcode scanning
+  // Handle image upload and actual barcode scanning with ZXing
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -196,63 +196,39 @@ const ScanLicense = ({ onLicenseAdded }) => {
     toast.info('Processing image...');
 
     try {
-      // Create a canvas to process the image
+      // Create image element from file
       const img = new Image();
       const reader = new FileReader();
 
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         img.onload = async () => {
           try {
-            // Create a canvas to draw the image
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-
-            // Try to use Barkoder to scan the image
-            if (window.Barkoder) {
-              try {
-                // Get image data from canvas
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // Initialize Barkoder for image processing
-                const tempVideo = document.createElement('video');
-                const barkoder = await window.Barkoder.initialize(tempVideo, {
-                  licenseKey: BARKODER_LICENSE_KEY,
-                });
-
-                // Configure for PDF417
-                await barkoder.setDecoderConfig({
-                  pdf417: { enabled: true },
-                  qr: { enabled: true },
-                  code128: { enabled: true },
-                  code39: { enabled: true },
-                });
-
-                // Process the image
-                const result = await barkoder.scanImage(canvas);
-                
-                if (result && result.textualData) {
-                  handleScanResult(result.textualData);
-                  return;
-                }
-              } catch (barkoderError) {
-                console.error('Barkoder image processing error:', barkoderError);
-              }
-            }
-
-            // If Barkoder fails or is not available, show error
-            toast.error('Could not detect barcode in image. Please ensure the PDF417 barcode is clearly visible.');
-            setIsProcessingImage(false);
+            console.log('Image loaded, scanning for barcode...');
+            
+            // Use ZXing to decode from image
+            const result = await codeReaderRef.current.decodeFromImageElement(img);
+            
+            console.log('ZXing decode result:', result);
+            handleScanResult(result.getText());
             
           } catch (err) {
             console.error('Image processing error:', err);
-            toast.error('Failed to process image');
+            toast.error('Could not detect PDF417 barcode in image. Please ensure the barcode is clearly visible.');
             setIsProcessingImage(false);
           }
         };
+        
+        img.onerror = () => {
+          toast.error('Failed to load image');
+          setIsProcessingImage(false);
+        };
+        
         img.src = e.target.result;
+      };
+
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+        setIsProcessingImage(false);
       };
 
       reader.readAsDataURL(file);
