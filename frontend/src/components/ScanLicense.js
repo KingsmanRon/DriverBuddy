@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Scan, Camera, AlertCircle, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 const ScanLicense = ({ onLicenseAdded }) => {
   const [isScanning, setIsScanning] = useState(false);
