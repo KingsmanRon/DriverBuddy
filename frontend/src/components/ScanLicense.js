@@ -369,8 +369,8 @@ const ScanLicense = ({ onLicenseAdded }) => {
                   <div className="absolute -bottom-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
                   
-                  {/* Scanning line - horizontal for PDF417 */}
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-secondary shadow-glow scan-line"></div>
+                  {/* Scanning line - vertical sweep */}
+                  <div className="absolute inset-x-0 h-1 bg-secondary shadow-glow scan-line" style={{ top: 0 }}></div>
                   
                   {/* Helper text */}
                   <div className="absolute -bottom-8 left-0 right-0 text-center">
