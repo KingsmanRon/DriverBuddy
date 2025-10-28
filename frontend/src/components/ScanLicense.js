@@ -66,13 +66,13 @@ const ScanLicense = ({ onLicenseAdded }) => {
             code39: { enabled: true },
           });
 
-          // Set region of interest to match the tall vertical frame
-          // This tells Barkoder to focus on the center vertical strip
+          // Set region of interest to match the VERY TALL NARROW frame
+          // This tells Barkoder to focus on the center narrow vertical strip
           await barkoder.setRegionOfInterest({
-            left: 0.2,    // Start at 20% from left
-            top: 0.05,    // Start at 5% from top
-            width: 0.6,   // Cover 60% of width (center vertical strip)
-            height: 0.9,  // Cover 90% of height (almost full height)
+            left: 0.275,   // Start at 27.5% from left (centered, 45% width)
+            top: 0.05,     // Start at 5% from top
+            width: 0.45,   // Cover 45% of width (narrow vertical strip)
+            height: 0.90,  // Cover 90% of height (almost full height)
           });
 
           barkoder.startScanning((result) => {
