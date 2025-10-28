@@ -275,9 +275,9 @@ frontend:
 
   - task: "Start Camera Feature"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/components/ScanLicense.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -287,6 +287,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ START CAMERA FEATURE WORKING: Start Camera button is present, properly sized for touch (44px height on mobile, 48px on desktop), and clickable. Camera permission handling works correctly (shows appropriate error when denied). Scanning interface is properly sized on mobile with responsive scan frame. Cancel scan functionality works. Feature coexists perfectly with new Upload Picture button."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL FAILURE: Start Camera button UI works (clickable, shows camera permission error correctly), but BARKODER SDK FAILS TO LOAD due to CORS/ORB error (net::ERR_BLOCKED_BY_ORB). Even if camera access is granted, barcode scanning will not work because window.Barkoder is undefined. The scanning interface won't initialize properly and no actual barcode detection will occur."
 
   - task: "Desktop Responsiveness"
     implemented: true
