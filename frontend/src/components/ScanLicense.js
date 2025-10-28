@@ -41,53 +41,28 @@ const ScanLicense = ({ onLicenseAdded }) => {
       setError(null);
       setScanSuccess(false);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      if (!codeReaderRef.current || !videoRef.current) {
+        throw new Error('Scanner not initialized');
       }
 
-      if (window.Barkoder && videoRef.current) {
-        try {
-          const barkoder = await window.Barkoder.initialize(videoRef.current, {
-            licenseKey: BARKODER_LICENSE_KEY,
-          });
+      toast.info('Starting camera...');
 
-          barkoderRef.current = barkoder;
-
-          // Configure for PDF417 with optimized settings for SA licenses
-          await barkoder.setDecoderConfig({
-            pdf417: { 
-              enabled: true,
-              // Optimize for tall/vertical barcodes
-            },
-            qr: { enabled: true },
-            code128: { enabled: true },
-            code39: { enabled: true },
-          });
-
-          // Set region of interest to match the VERY TALL NARROW frame
-          // This tells Barkoder to focus on the center narrow vertical strip
-          await barkoder.setRegionOfInterest({
-            left: 0.275,   // Start at 27.5% from left (centered, 45% width)
-            top: 0.05,     // Start at 5% from top
-            width: 0.45,   // Cover 45% of width (narrow vertical strip)
-            height: 0.90,  // Cover 90% of height (almost full height)
-          });
-
-          barkoder.startScanning((result) => {
-            handleScanResult(result);
-          });
-
-          toast.info('Camera ready - Position barcode vertically in frame');
-        } catch (barkoderError) {
-          console.error('Barkoder initialization error:', barkoderError);
-          toast.warning('Advanced scanning unavailable, using basic mode');
+      // Start continuous decoding from video device
+      await codeReaderRef.current.decodeFromVideoDevice(
+        undefined, // Use default camera
+        videoRef.current,
+        (result, error) => {
+          if (result) {
+            console.log('ZXing scan result:', result);
+            handleScanResult(result.getText());
+          }
+          if (error && error.name !== 'NotFoundException') {
+            console.error('ZXing error:', error);
+          }
         }
-      }
+      );
+
+      toast.success('Camera ready - Align barcode in frame');
     } catch (err) {
       console.error('Camera error:', err);
       setError('Unable to access camera. Please check permissions.');
@@ -97,19 +72,9 @@ const ScanLicense = ({ onLicenseAdded }) => {
   };
 
   const stopScanning = () => {
-    if (barkoderRef.current) {
-      barkoderRef.current.stopScanning();
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
     }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
     setIsScanning(false);
   };
 
