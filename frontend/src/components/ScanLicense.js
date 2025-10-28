@@ -168,10 +168,57 @@ const ScanLicense = ({ onLicenseAdded }) => {
     return futureDate.toISOString().split('T')[0];
   };
 
-  const simulateScan = () => {
-    const mockBarcodeData = `@\nANSI 636000010002DL00410278ZA03290015DLDAQD12345678\nDCSJOHN\nDDEN\nDACDOE\nDDFN\nDADMIDDLE\nDDGN\nDCAB\nDCBNONE\nDCDNONE\nDBD09012020\nDBB01011990\nDBA09012030\nDBC1\nDAU178 cm\nDAYBRN\nDAG123 MAIN STREET\nDAICAPE TOWN\nDAJWC\nDAK80001ZA0\nDCF83X20202Z1234567\nDCGZAF\nDCK12345678901234\nDDAM\nDDB09012018\nDDC09012020\n`;
-    
-    handleScanResult(mockBarcodeData);
+  // Simulate scan for demo purposes
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size should be less than 10MB');
+      return;
+    }
+
+    setIsProcessingImage(true);
+    toast.info('Processing image...');
+
+    try {
+      // Create a canvas to process the image
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.onload = async () => {
+          try {
+            // For now, we'll simulate barcode detection
+            // In production, you could use Barkoder's image processing
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Generate mock data based on image upload
+            const mockBarcodeData = `@\nANSI 636000010002DL00410278ZA03290015DLDAQD${Date.now()}\nDCSUPLOADED\nDDEN\nDACUSER\nDDFN\nDADFROM\nDDGN\nDCAB\nDCBNONE\nDCDNONE\nDBD${new Date().toISOString().split('T')[0].replace(/-/g, '')}\nDBB19900101\nDBA${new Date(Date.now() + 5*365*24*60*60*1000).toISOString().split('T')[0].replace(/-/g, '')}\nDBC1\nDAU178 cm\nDAYBRN\nDAG123 MAIN STREET\nDAICAPE TOWN\nDAJWC\nDAK80001ZA0\nDCF83X20202Z1234567\nDCGZAF\nDCK12345678901234\nDDAM\nDDB${new Date().toISOString().split('T')[0].replace(/-/g, '')}\nDDC${new Date().toISOString().split('T')[0].replace(/-/g, '')}\n`;
+            
+            handleScanResult(mockBarcodeData);
+          } catch (err) {
+            console.error('Image processing error:', err);
+            toast.error('Failed to process image');
+            setIsProcessingImage(false);
+          }
+        };
+        img.src = e.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Failed to upload image');
+      setIsProcessingImage(false);
+    }
   };
 
   return (
