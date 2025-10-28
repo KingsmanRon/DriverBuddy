@@ -43,27 +43,30 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
       toast.info('Starting camera...');
 
-      // Start continuous decoding from video device
+      // Start continuous decoding from video device using ZXing
       await codeReaderRef.current.decodeFromVideoDevice(
-        undefined, // Use default camera
+        undefined, // Use default camera (back camera on mobile)
         videoRef.current,
         (result, error) => {
           if (result) {
             console.log('ZXing scan result:', result);
+            console.log('Barcode text:', result.getText());
+            console.log('Barcode format:', result.getBarcodeFormat());
             handleScanResult(result.getText());
           }
+          // Ignore "NotFoundException" - it just means no barcode in current frame
           if (error && error.name !== 'NotFoundException') {
-            console.error('ZXing error:', error);
+            console.error('ZXing scanning error:', error);
           }
         }
       );
 
       toast.success('Camera ready - Align barcode in frame');
     } catch (err) {
-      console.error('Camera error:', err);
-      setError('Unable to access camera. Please check permissions.');
+      console.error('Camera initialization error:', err);
+      setError('Unable to access camera. Please check permissions and try again.');
       setIsScanning(false);
-      toast.error('Camera access denied');
+      toast.error('Camera access failed: ' + err.message);
     }
   };
 
