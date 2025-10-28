@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Scan, Camera, AlertCircle, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 
 const ScanLicense = ({ onLicenseAdded }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -11,11 +12,8 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const videoRef = useRef(null);
-  const barkoderRef = useRef(null);
-  const streamRef = useRef(null);
+  const codeReaderRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  const BARKODER_LICENSE_KEY = 'PEmBIohr9EZXgCkySoetbwP4gvOfMcGzgxKPL2X6uqPV7ammESbLuFjLw_1d4gbhZpvZ0Yu17Qs8QmgzGFm6v7OukQjgzwV5O7bf2MnowdRu7h87iHZICq3UhLXrK2pmnMSXYl4FqdJxO602i3vWvNdUl0lPXnLh7wiycCjHnSKYJ9hGxdLTc5iQC3DnvQ8IDd3mKs4CggFj_RC0PeNQM-YRzCJFRbW4Tfs8gSLzVyVKewhztx1sOa6sEkDTRpXHrgIZ-PafVCISWGNZbfQVYqHOmNvFu9z3WkxmmF8c8Nc.';
 
   useEffect(() => {
     const script = document.createElement('script');
