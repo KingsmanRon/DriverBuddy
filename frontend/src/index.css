@@ -166,10 +166,10 @@
     background-image: var(--gradient-secondary);
   }
   
-  /* Scanner Frame Animation */
+  /* Scanner Frame Animation - Horizontal for PDF417 */
   @keyframes scan-line {
-    0%, 100% { transform: translateY(0); opacity: 0.8; }
-    50% { transform: translateY(100%); opacity: 1; }
+    0%, 100% { transform: translateX(-50%) translateY(-50%); opacity: 0.8; }
+    50% { transform: translateX(50%) translateY(-50%); opacity: 1; }
   }
   
   .scan-line {
