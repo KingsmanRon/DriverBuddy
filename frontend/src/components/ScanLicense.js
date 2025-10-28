@@ -16,17 +16,22 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/barkoder@latest/dist/barkoder.bundle.js';
-    script.async = true;
-    script.onload = () => console.log('Barkoder SDK loaded');
-    document.body.appendChild(script);
+    // Initialize ZXing reader
+    const hints = new Map();
+    const formats = [
+      BarcodeFormat.PDF_417,
+      BarcodeFormat.QR_CODE,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39
+    ];
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    
+    codeReaderRef.current = new BrowserMultiFormatReader(hints);
+    console.log('ZXing Reader initialized with PDF417 support');
 
     return () => {
       stopScanning();
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
     };
   }, []);
 
