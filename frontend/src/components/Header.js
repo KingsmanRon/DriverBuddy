@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Shield, Home, CreditCard, Menu } from 'lucide-react';
+import { Home, CreditCard, Menu } from 'lucide-react';
+import SAFlagShield from './SAFlagShield';
 import {
   DropdownMenu,
   DropdownMenuContent,
