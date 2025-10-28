@@ -16,13 +16,13 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const scannerDivId = 'qr-reader';
 
   useEffect(() => {
-    // Initialize ZXing reader from browser package
+    // Initialize Html5Qrcode scanner
     try {
-      codeReaderRef.current = new BrowserMultiFormatReader();
-      console.log('ZXing BrowserMultiFormatReader initialized successfully');
-      console.log('Reader available:', !!codeReaderRef.current);
+      html5QrCodeRef.current = new Html5Qrcode(scannerDivId);
+      console.log('Html5Qrcode scanner initialized successfully');
+      console.log('Scanner supports PDF417:', true);
     } catch (error) {
-      console.error('Failed to initialize ZXing reader:', error);
+      console.error('Failed to initialize Html5Qrcode:', error);
       toast.error('Barcode scanner initialization failed');
     }
 
@@ -37,26 +37,38 @@ const ScanLicense = ({ onLicenseAdded }) => {
       setError(null);
       setScanSuccess(false);
 
-      if (!codeReaderRef.current || !videoRef.current) {
+      if (!html5QrCodeRef.current) {
         throw new Error('Scanner not initialized');
       }
 
       toast.info('Starting camera...');
 
-      // Start continuous decoding from video device using ZXing
-      await codeReaderRef.current.decodeFromVideoDevice(
-        undefined, // Use default camera (back camera on mobile)
-        videoRef.current,
-        (result, error) => {
-          if (result) {
-            console.log('ZXing scan result:', result);
-            console.log('Barcode text:', result.getText());
-            console.log('Barcode format:', result.getBarcodeFormat());
-            handleScanResult(result.getText());
-          }
-          // Ignore "NotFoundException" - it just means no barcode in current frame
-          if (error && error.name !== 'NotFoundException') {
-            console.error('ZXing scanning error:', error);
+      // Configure to support PDF417 and other formats
+      const config = {
+        fps: 10,
+        qrbox: { width: 300, height: 400 }, // Tall box for PDF417
+        aspectRatio: 0.75, // 3:4 aspect ratio for vertical barcode
+        formatsToSupport: [
+          Html5Qrcode.SCAN_TYPE_PDF417,
+          Html5Qrcode.SCAN_TYPE_CODE_128,
+          Html5Qrcode.SCAN_TYPE_CODE_39,
+          Html5Qrcode.SCAN_TYPE_QR_CODE
+        ]
+      };
+
+      // Start scanning with back camera
+      await html5QrCodeRef.current.start(
+        { facingMode: "environment" }, // Use back camera
+        config,
+        (decodedText, decodedResult) => {
+          console.log('Html5Qrcode scan result:', decodedText);
+          console.log('Barcode format:', decodedResult.result.format);
+          handleScanResult(decodedText);
+        },
+        (errorMessage) => {
+          // Ignore "NotFoundException" - just means no barcode in frame
+          if (!errorMessage.includes('NotFoundException')) {
+            console.error('Scanning error:', errorMessage);
           }
         }
       );
@@ -64,23 +76,17 @@ const ScanLicense = ({ onLicenseAdded }) => {
       toast.success('Camera ready - Align barcode in frame');
     } catch (err) {
       console.error('Camera initialization error:', err);
-      setError('Unable to access camera. Please check permissions and try again.');
+      setError('Unable to access camera. Please check permissions.');
       setIsScanning(false);
-      toast.error('Camera access failed: ' + err.message);
+      toast.error('Camera access failed');
     }
   };
 
-  const stopScanning = () => {
+  const stopScanning = async () => {
     try {
-      if (codeReaderRef.current) {
-        // ZXing BrowserMultiFormatReader uses stopContinuousDecode()
-        if (typeof codeReaderRef.current.stopContinuousDecode === 'function') {
-          codeReaderRef.current.stopContinuousDecode();
-        }
-        // Also reset the stream
-        if (typeof codeReaderRef.current.stopStreams === 'function') {
-          codeReaderRef.current.stopStreams();
-        }
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        await html5QrCodeRef.current.stop();
+        console.log('Scanner stopped');
       }
     } catch (error) {
       console.error('Error stopping scanner:', error);
