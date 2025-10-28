@@ -229,15 +229,15 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
   return (
     <Card className="shadow-xl border-2 border-border/50 animate-slide-in">
-      <CardHeader className="space-y-2 pb-6">
-        <CardTitle className="text-2xl font-display flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-            <Scan className="w-5 h-5 text-secondary" />
+      <CardHeader className="space-y-2 pb-4 sm:pb-6">
+        <CardTitle className="text-xl sm:text-2xl font-display flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0">
+            <Scan className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
           </div>
-          Scan License Barcode
+          <span className="leading-tight">Scan License Barcode</span>
         </CardTitle>
-        <CardDescription className="text-base">
-          Use your camera to scan the PDF417 barcode on the back of your driver's license
+        <CardDescription className="text-sm sm:text-base">
+          Use your camera to scan the PDF417 barcode or upload a clear photo of your driver's license
         </CardDescription>
       </CardHeader>
 
