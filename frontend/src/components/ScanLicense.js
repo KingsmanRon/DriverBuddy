@@ -113,72 +113,98 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const handleScanResult = (result) => {
     console.log('Scan result:', result);
     
+    // Parse the barcode data - SA licenses use a specific format
     const barcodeData = result.textualData || result;
     
+    // SA Driver's License PDF417 format parsing
+    // Expected format has fields like: Document Type, Surname, ID Number, etc.
+    const lines = barcodeData.split('\n').filter(line => line.trim());
+    
+    const licenseData = {};
+    lines.forEach(line => {
+      const [key, ...valueParts] = line.split(':');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join(':').trim();
+        licenseData[key.trim()] = value;
+      }
+    });
+    
+    console.log('Parsed license data:', licenseData);
+    
+    // Extract fields based on SA format
+    const surname = licenseData['Surname'] || extractField(barcodeData, 'Surname') || 'Unknown';
+    const idNumber = licenseData['ID Number'] || extractField(barcodeData, 'ID Number') || Date.now().toString();
+    const initials = licenseData['Initials'] || extractField(barcodeData, 'Initials') || '';
+    const licenseNumber = licenseData['License Number'] || extractField(barcodeData, 'License Number') || idNumber;
+    const licenseIssueNumber = licenseData['License Issue Number'] || extractField(barcodeData, 'License Issue Number') || '01';
+    
+    // Construct full name
+    const fullName = initials ? `${initials} ${surname}` : surname;
+    
+    // Extract date of birth from SA ID number (first 6 digits: YYMMDD)
+    let dateOfBirth = '1990-01-01';
+    if (idNumber && idNumber.length >= 6) {
+      const yy = idNumber.substring(0, 2);
+      const mm = idNumber.substring(2, 4);
+      const dd = idNumber.substring(4, 6);
+      const year = parseInt(yy) > 50 ? `19${yy}` : `20${yy}`;
+      dateOfBirth = `${year}-${mm}-${dd}`;
+    }
+    
+    // Create license object
     const license = {
       id: Date.now().toString(),
-      licenseNumber: extractLicenseNumber(barcodeData),
-      fullName: extractFullName(barcodeData),
-      dateOfBirth: extractDateOfBirth(barcodeData),
-      address: extractAddress(barcodeData),
-      licenseClass: extractLicenseClass(barcodeData),
+      licenseNumber: licenseNumber,
+      fullName: fullName,
+      surname: surname,
+      initials: initials,
+      idNumber: idNumber,
+      licenseIssueNumber: licenseIssueNumber,
+      dateOfBirth: dateOfBirth,
+      address: 'South Africa',
+      licenseClass: 'B',
       issueDate: new Date().toISOString().split('T')[0],
-      expiryDate: extractExpiryDate(barcodeData),
+      expiryDate: calculateExpiryFromDOB(dateOfBirth),
       scannedData: barcodeData,
+      rawData: licenseData,
       createdAt: new Date().toISOString(),
     };
 
+    // Store in localStorage
     const licenses = JSON.parse(localStorage.getItem('driverLicenses') || '[]');
     licenses.push(license);
     localStorage.setItem('driverLicenses', JSON.stringify(licenses));
 
     setScanSuccess(true);
     stopScanning();
-    toast.success('License scanned successfully!');
+    toast.success(`License scanned: ${fullName}`);
     
     setTimeout(() => {
       onLicenseAdded?.();
     }, 1500);
   };
 
-  const extractLicenseNumber = (data) => {
-    const match = data.match(/DL(\d+)|([A-Z0-9]{8,})/);
-    return match ? (match[1] || match[2]) : 'SCANNED-' + Date.now();
+  // Helper function to extract field from raw barcode data
+  const extractField = (data, fieldName) => {
+    const regex = new RegExp(`${fieldName}[:\\s]+([^\\n]+)`, 'i');
+    const match = data.match(regex);
+    return match ? match[1].trim() : null;
   };
 
-  const extractFullName = (data) => {
-    const match = data.match(/DAC([A-Z]+).*?DAD([A-Z]+)/);
-    return match ? `${match[2]} ${match[1]}` : 'Scanned User';
-  };
-
-  const extractDateOfBirth = (data) => {
-    const match = data.match(/DBB(\d{8})/);
-    if (match) {
-      const dob = match[1];
-      return `${dob.substr(0,4)}-${dob.substr(4,2)}-${dob.substr(6,2)}`;
+  // Calculate expiry date from date of birth
+  const calculateExpiryFromDOB = (dob) => {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    
+    const expiryDate = new Date(today);
+    if (age < 65) {
+      expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+    } else {
+      expiryDate.setFullYear(expiryDate.getFullYear() + 2);
     }
-    return '1990-01-01';
-  };
-
-  const extractAddress = (data) => {
-    const match = data.match(/DAG([^\n]+)/);
-    return match ? match[1].trim() : 'Scanned Address';
-  };
-
-  const extractLicenseClass = (data) => {
-    const match = data.match(/DCA([A-Z0-9]+)/);
-    return match ? match[1] : 'B';
-  };
-
-  const extractExpiryDate = (data) => {
-    const match = data.match(/DBA(\d{8})/);
-    if (match) {
-      const exp = match[1];
-      return `${exp.substr(0,4)}-${exp.substr(4,2)}-${exp.substr(6,2)}`;
-    }
-    const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + 5);
-    return futureDate.toISOString().split('T')[0];
+    
+    return expiryDate.toISOString().split('T')[0];
   };
 
   // Handle image upload and actual barcode scanning
