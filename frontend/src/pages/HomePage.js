@@ -25,8 +25,8 @@ const HomePage = () => {
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center space-y-4 sm:space-y-6 animate-slide-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-2 sm:mb-4 p-3 sm:p-4">
-              <SAFlagShield className="w-full h-full" />
+            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 mb-2 sm:mb-4 overflow-hidden shadow-xl">
+              <SAFlagShield className="w-16 h-16 sm:w-20 sm:h-20" />
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white leading-tight px-4">
