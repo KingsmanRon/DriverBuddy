@@ -312,9 +312,13 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus: []
+  current_focus: 
+    - "Picture Upload Feature (NEW)"
+    - "Start Camera Feature"
   stuck_tasks: 
     - "Header Navigation"
+    - "Picture Upload Feature (NEW)"
+    - "Start Camera Feature"
   test_all: false
   test_priority: "stuck_first"
 
