@@ -221,6 +221,12 @@ const ScanLicense = ({ onLicenseAdded }) => {
     }
   };
 
+  const simulateScan = () => {
+    const mockBarcodeData = `@\nANSI 636000010002DL00410278ZA03290015DLDAQD12345678\nDCSJOHN\nDDEN\nDACDOE\nDDFN\nDADMIDDLE\nDDGN\nDCAB\nDCBNONE\nDCDNONE\nDBD09012020\nDBB01011990\nDBA09012030\nDBC1\nDAU178 cm\nDAYBRN\nDAG123 MAIN STREET\nDAICAPE TOWN\nDAJWC\nDAK80001ZA0\nDCF83X20202Z1234567\nDCGZAF\nDCK12345678901234\nDDAM\nDDB09012018\nDDC09012020\n`;
+    
+    handleScanResult(mockBarcodeData);
+  };
+
   return (
     <Card className="shadow-xl border-2 border-border/50 animate-slide-in">
       <CardHeader className="space-y-2 pb-6">
