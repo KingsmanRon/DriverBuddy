@@ -333,6 +333,8 @@ test_plan:
     - "Start Camera Feature"
   test_all: false
   test_priority: "stuck_first"
+  final_validation_complete: true
+  zxing_barcode_test_status: "CRITICAL_FAILURE_CONFIRMED"
 
 agent_communication:
   - agent: "testing"
