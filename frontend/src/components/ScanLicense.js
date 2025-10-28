@@ -16,19 +16,15 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // Initialize ZXing reader
-    const hints = new Map();
-    const formats = [
-      BarcodeFormat.PDF_417,
-      BarcodeFormat.QR_CODE,
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.CODE_39
-    ];
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(DecodeHintType.TRY_HARDER, true);
-    
-    codeReaderRef.current = new BrowserMultiFormatReader(hints);
-    console.log('ZXing Reader initialized with PDF417 support');
+    // Initialize ZXing reader from browser package
+    try {
+      codeReaderRef.current = new BrowserMultiFormatReader();
+      console.log('ZXing BrowserMultiFormatReader initialized successfully');
+      console.log('Reader available:', !!codeReaderRef.current);
+    } catch (error) {
+      console.error('Failed to initialize ZXing reader:', error);
+      toast.error('Barcode scanner initialization failed');
+    }
 
     return () => {
       stopScanning();
