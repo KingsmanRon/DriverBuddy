@@ -252,6 +252,13 @@ const ScanLicense = ({ onLicenseAdded }) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Always render scanner div but hide it when not scanning */}
+        <div 
+          id={scannerDivId}
+          className={`${isScanning ? 'block' : 'hidden'} relative w-full rounded-xl overflow-hidden border-2 border-secondary shadow-glow`}
+          style={{ minHeight: '400px' }}
+        />
+
         {!isScanning && !scanSuccess && !isProcessingImage && (
           <div className="space-y-4">
             <div className="relative aspect-video bg-muted rounded-xl overflow-hidden border-2 border-dashed border-border flex items-center justify-center">
