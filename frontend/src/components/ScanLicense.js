@@ -168,7 +168,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
     return futureDate.toISOString().split('T')[0];
   };
 
-  // Simulate scan for demo purposes
+  // Handle image upload and actual barcode scanning
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -196,14 +196,49 @@ const ScanLicense = ({ onLicenseAdded }) => {
       reader.onload = (e) => {
         img.onload = async () => {
           try {
-            // For now, we'll simulate barcode detection
-            // In production, you could use Barkoder's image processing
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Create a canvas to draw the image
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
 
-            // Generate mock data based on image upload
-            const mockBarcodeData = `@\nANSI 636000010002DL00410278ZA03290015DLDAQD${Date.now()}\nDCSUPLOADED\nDDEN\nDACUSER\nDDFN\nDADFROM\nDDGN\nDCAB\nDCBNONE\nDCDNONE\nDBD${new Date().toISOString().split('T')[0].replace(/-/g, '')}\nDBB19900101\nDBA${new Date(Date.now() + 5*365*24*60*60*1000).toISOString().split('T')[0].replace(/-/g, '')}\nDBC1\nDAU178 cm\nDAYBRN\nDAG123 MAIN STREET\nDAICAPE TOWN\nDAJWC\nDAK80001ZA0\nDCF83X20202Z1234567\nDCGZAF\nDCK12345678901234\nDDAM\nDDB${new Date().toISOString().split('T')[0].replace(/-/g, '')}\nDDC${new Date().toISOString().split('T')[0].replace(/-/g, '')}\n`;
+            // Try to use Barkoder to scan the image
+            if (window.Barkoder) {
+              try {
+                // Get image data from canvas
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Initialize Barkoder for image processing
+                const tempVideo = document.createElement('video');
+                const barkoder = await window.Barkoder.initialize(tempVideo, {
+                  licenseKey: BARKODER_LICENSE_KEY,
+                });
+
+                // Configure for PDF417
+                await barkoder.setDecoderConfig({
+                  pdf417: { enabled: true },
+                  qr: { enabled: true },
+                  code128: { enabled: true },
+                  code39: { enabled: true },
+                });
+
+                // Process the image
+                const result = await barkoder.scanImage(canvas);
+                
+                if (result && result.textualData) {
+                  handleScanResult(result.textualData);
+                  return;
+                }
+              } catch (barkoderError) {
+                console.error('Barkoder image processing error:', barkoderError);
+              }
+            }
+
+            // If Barkoder fails or is not available, show error
+            toast.error('Could not detect barcode in image. Please ensure the PDF417 barcode is clearly visible.');
+            setIsProcessingImage(false);
             
-            handleScanResult(mockBarcodeData);
           } catch (err) {
             console.error('Image processing error:', err);
             toast.error('Failed to process image');
