@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import ManualUpload from '../components/ManualUpload';
 import ScanLicense from '../components/ScanLicense';
 import Header from '../components/Header';
-import { Shield, Scan, Upload } from 'lucide-react';
+import SAFlagShield from '../components/SAFlagShield';
+import { Scan, Upload } from 'lucide-react';
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState('scan');
