@@ -294,6 +294,22 @@ const ScanLicense = ({ onLicenseAdded }) => {
           </div>
         )}
 
+        {isProcessingImage && (
+          <div className="text-center space-y-4 py-8 animate-slide-in">
+            <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-10 h-10 text-secondary animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-lg sm:text-xl font-display font-semibold text-foreground mb-2">
+                Processing Image...
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Analyzing barcode from uploaded photo
+              </p>
+            </div>
+          </div>
+        )}
+
         {isScanning && (
           <div className="space-y-4">
             <div className="relative aspect-video bg-black rounded-xl overflow-hidden border-2 border-secondary shadow-glow">
@@ -305,19 +321,19 @@ const ScanLicense = ({ onLicenseAdded }) => {
                 className="w-full h-full object-cover"
               />
               
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-3/4 h-3/4 border-4 border-secondary rounded-lg">
-                  <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-                  <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-                  <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
+              <div className="absolute inset-0 flex items-center justify-center p-4">
+                <div className="relative w-full max-w-[85%] sm:w-3/4 aspect-[4/3] sm:aspect-auto sm:h-3/4 border-4 border-secondary rounded-lg">
+                  <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
+                  <div className="absolute -bottom-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
                   
                   <div className="absolute inset-x-0 h-1 bg-secondary shadow-glow scan-line"></div>
                 </div>
               </div>
               
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-2 rounded-full flex items-center gap-2 font-semibold shadow-lg">
-                <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground px-3 py-1.5 sm:px-4 sm:py-2 rounded-full flex items-center gap-2 text-xs sm:text-base font-semibold shadow-lg">
+                <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                 Scanning...
               </div>
             </div>
@@ -325,7 +341,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
             <Button 
               onClick={stopScanning}
               variant="outline"
-              className="w-full h-12 text-base font-semibold border-2"
+              className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-2"
               size="lg"
             >
               Cancel Scan
@@ -335,14 +351,14 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
         {scanSuccess && (
           <div className="text-center space-y-4 py-8 animate-slide-in">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-10 h-10 text-success" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-success" />
             </div>
             <div>
-              <h3 className="text-xl font-display font-semibold text-foreground mb-2">
+              <h3 className="text-lg sm:text-xl font-display font-semibold text-foreground mb-2">
                 Scan Successful!
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Your license has been added. Redirecting...
               </p>
             </div>
