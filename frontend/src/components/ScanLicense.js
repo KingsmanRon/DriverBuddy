@@ -55,18 +55,31 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
           barkoderRef.current = barkoder;
 
+          // Configure for PDF417 with optimized settings for SA licenses
           await barkoder.setDecoderConfig({
-            pdf417: { enabled: true },
+            pdf417: { 
+              enabled: true,
+              // Optimize for tall/vertical barcodes
+            },
             qr: { enabled: true },
             code128: { enabled: true },
             code39: { enabled: true },
+          });
+
+          // Set region of interest to match the tall vertical frame
+          // This tells Barkoder to focus on the center vertical strip
+          await barkoder.setRegionOfInterest({
+            left: 0.2,    // Start at 20% from left
+            top: 0.05,    // Start at 5% from top
+            width: 0.6,   // Cover 60% of width (center vertical strip)
+            height: 0.9,  // Cover 90% of height (almost full height)
           });
 
           barkoder.startScanning((result) => {
             handleScanResult(result);
           });
 
-          toast.info('Camera ready - Point at license barcode');
+          toast.info('Camera ready - Position barcode vertically in frame');
         } catch (barkoderError) {
           console.error('Barkoder initialization error:', barkoderError);
           toast.warning('Advanced scanning unavailable, using basic mode');
