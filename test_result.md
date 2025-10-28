@@ -257,9 +257,9 @@ frontend:
 
   - task: "Picture Upload Feature (NEW)"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/components/ScanLicense.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -269,6 +269,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ UPLOAD PICTURE FEATURE WORKING: New Upload Picture button is present and functional, replacing the old Demo Scan. Button is properly sized for mobile touch (44px height), clickable, and triggers file picker. File validation includes type checking (images only) and size limits (10MB max). Processing state shows correctly with loading animation. Feature works on all tested viewports (mobile, tablet, desktop)."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL FAILURE: Upload Picture feature UI works (button clickable, file picker opens with image/* accept), but BARKODER SDK FAILS TO LOAD due to CORS/ORB error (net::ERR_BLOCKED_BY_ORB). The scanImage() function is unavailable, so actual barcode scanning from uploaded images WILL NOT WORK. Users can upload images but scanning will fail with 'Could not detect barcode' error."
 
   - task: "Start Camera Feature"
     implemented: true
