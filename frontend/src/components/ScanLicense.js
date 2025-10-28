@@ -4,16 +4,16 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Scan, Camera, AlertCircle, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { BrowserMultiFormatReader } from '@zxing/browser';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const ScanLicense = ({ onLicenseAdded }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const videoRef = useRef(null);
-  const codeReaderRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
+  const scannerDivId = 'qr-reader';
 
   useEffect(() => {
     // Initialize ZXing reader from browser package
