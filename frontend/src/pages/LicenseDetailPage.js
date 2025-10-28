@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
+import SAFlagShield from '../components/SAFlagShield';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { ArrowLeft, Shield, Calendar, User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
 
 const LicenseDetailPage = () => {
   const [license, setLicense] = useState(null);
