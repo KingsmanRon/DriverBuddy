@@ -68,8 +68,19 @@ const ScanLicense = ({ onLicenseAdded }) => {
   };
 
   const stopScanning = () => {
-    if (codeReaderRef.current) {
-      codeReaderRef.current.reset();
+    try {
+      if (codeReaderRef.current) {
+        // ZXing BrowserMultiFormatReader uses stopContinuousDecode()
+        if (typeof codeReaderRef.current.stopContinuousDecode === 'function') {
+          codeReaderRef.current.stopContinuousDecode();
+        }
+        // Also reset the stream
+        if (typeof codeReaderRef.current.stopStreams === 'function') {
+          codeReaderRef.current.stopStreams();
+        }
+      }
+    } catch (error) {
+      console.error('Error stopping scanner:', error);
     }
     setIsScanning(false);
   };
