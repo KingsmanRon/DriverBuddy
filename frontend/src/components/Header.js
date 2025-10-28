@@ -22,7 +22,7 @@ const Header = () => {
           className="flex items-center gap-3 cursor-pointer group" 
           onClick={() => navigate('/')}
         >
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md group-hover:shadow-glow transition-all duration-300 p-1">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-md group-hover:shadow-glow transition-all duration-300 overflow-hidden">
             <SAFlagShield className="w-full h-full" />
           </div>
           <div>
