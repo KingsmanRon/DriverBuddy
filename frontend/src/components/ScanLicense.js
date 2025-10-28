@@ -191,7 +191,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
     return expiryDate.toISOString().split('T')[0];
   };
 
-  // Handle image upload and actual barcode scanning with ZXing
+  // Handle image upload using Html5Qrcode
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -212,45 +212,21 @@ const ScanLicense = ({ onLicenseAdded }) => {
     toast.info('Processing image...');
 
     try {
-      // Create image element from file
-      const img = new Image();
-      const reader = new FileReader();
+      if (!html5QrCodeRef.current) {
+        throw new Error('Scanner not initialized');
+      }
 
-      reader.onload = async (e) => {
-        img.onload = async () => {
-          try {
-            console.log('Image loaded, scanning for barcode...');
-            
-            // Use ZXing to decode from image
-            const result = await codeReaderRef.current.decodeFromImageElement(img);
-            
-            console.log('ZXing decode result:', result);
-            handleScanResult(result.getText());
-            
-          } catch (err) {
-            console.error('Image processing error:', err);
-            toast.error('Could not detect PDF417 barcode in image. Please ensure the barcode is clearly visible.');
-            setIsProcessingImage(false);
-          }
-        };
-        
-        img.onerror = () => {
-          toast.error('Failed to load image');
-          setIsProcessingImage(false);
-        };
-        
-        img.src = e.target.result;
-      };
+      console.log('Scanning image file for barcode...');
 
-      reader.onerror = () => {
-        toast.error('Failed to read file');
-        setIsProcessingImage(false);
-      };
-
-      reader.readAsDataURL(file);
+      // Scan the uploaded file directly
+      const decodedText = await html5QrCodeRef.current.scanFile(file, true);
+      
+      console.log('Html5Qrcode image scan result:', decodedText);
+      handleScanResult(decodedText);
+      
     } catch (err) {
-      console.error('Upload error:', err);
-      toast.error('Failed to upload image');
+      console.error('Image processing error:', err);
+      toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
       setIsProcessingImage(false);
     }
   };
