@@ -242,45 +242,53 @@ const ScanLicense = ({ onLicenseAdded }) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {!isScanning && !scanSuccess && (
+        {!isScanning && !scanSuccess && !isProcessingImage && (
           <div className="space-y-4">
             <div className="relative aspect-video bg-muted rounded-xl overflow-hidden border-2 border-dashed border-border flex items-center justify-center">
-              <div className="text-center space-y-4 p-6">
-                <Camera className="w-16 h-16 mx-auto text-muted-foreground" />
+              <div className="text-center space-y-4 p-4 sm:p-6">
+                <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground" />
                 <div>
-                  <h3 className="font-semibold text-lg text-foreground mb-1">Ready to Scan</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-semibold text-base sm:text-lg text-foreground mb-1">Ready to Scan</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
                     Position the barcode within the frame
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3">
               <Button 
                 onClick={startScanning}
-                className="flex-1 h-12 text-base font-semibold bg-secondary hover:bg-secondary-light transition-colors"
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold bg-secondary hover:bg-secondary-light transition-colors"
                 size="lg"
               >
-                <Camera className="w-5 h-5 mr-2" />
+                <Camera className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Start Camera
               </Button>
               
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              
               <Button 
-                onClick={simulateScan}
+                onClick={() => fileInputRef.current?.click()}
                 variant="outline"
-                className="flex-1 h-12 text-base font-semibold border-2"
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-2"
                 size="lg"
               >
-                <Scan className="w-5 h-5 mr-2" />
-                Demo Scan
+                <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Upload Picture
               </Button>
             </div>
 
             <Alert className="bg-secondary/5 border-secondary/20">
-              <AlertCircle className="h-4 w-4 text-secondary" />
-              <AlertDescription className="text-sm">
-                For best results, ensure good lighting and hold the camera steady over the barcode.
+              <AlertCircle className="h-4 w-4 text-secondary flex-shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm">
+                For best results, ensure good lighting and clear focus on the barcode. You can scan directly or upload a photo.
               </AlertDescription>
             </Alert>
           </div>
