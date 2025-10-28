@@ -347,7 +347,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
         {isScanning && (
           <div className="space-y-4">
-            <div className="relative w-full bg-black rounded-xl overflow-hidden border-2 border-secondary shadow-glow" style={{ aspectRatio: '16/9' }}>
+            <div className="relative w-full bg-black rounded-xl overflow-hidden border-2 border-secondary shadow-glow" style={{ aspectRatio: '4/3' }}>
               <video 
                 ref={videoRef} 
                 autoPlay 
@@ -356,26 +356,26 @@ const ScanLicense = ({ onLicenseAdded }) => {
                 className="w-full h-full object-cover"
               />
               
-              {/* Scanning overlay with wider frame for PDF417 */}
+              {/* Scanning overlay with TALL VERTICAL frame for PDF417 */}
               <div className="absolute inset-0 flex items-center justify-center p-4">
                 {/* Dark overlay outside scan area */}
                 <div className="absolute inset-0 bg-black/50"></div>
                 
-                {/* Wider scanning frame for PDF417 barcodes */}
-                <div className="relative w-[90%] sm:w-[85%] aspect-[3/1] border-4 border-secondary rounded-lg z-10 bg-transparent">
+                {/* TALL VERTICAL scanning frame for PDF417 barcodes - matches 3:4 to 1:4 aspect ratio */}
+                <div className="relative w-[60%] sm:w-[50%] h-[85%] border-4 border-secondary rounded-lg z-10 bg-transparent">
                   {/* Corner indicators */}
                   <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
                   <div className="absolute -top-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
                   <div className="absolute -bottom-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
                   
-                  {/* Scanning line - vertical sweep */}
+                  {/* Scanning line - sweeps vertically through TALL barcode */}
                   <div className="absolute inset-x-0 h-1 bg-secondary shadow-glow scan-line" style={{ top: 0 }}></div>
                   
                   {/* Helper text */}
-                  <div className="absolute -bottom-8 left-0 right-0 text-center">
+                  <div className="absolute -bottom-10 sm:-bottom-12 left-0 right-0 text-center px-2">
                     <p className="text-white text-xs sm:text-sm font-semibold drop-shadow-lg">
-                      Align PDF417 barcode horizontally within frame
+                      Fit entire PDF417 barcode vertically within frame
                     </p>
                   </div>
                 </div>
@@ -391,7 +391,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
             <Alert className="bg-secondary/5 border-secondary/20">
               <AlertCircle className="h-4 w-4 text-secondary flex-shrink-0" />
               <AlertDescription className="text-xs sm:text-sm">
-                <strong>Tip:</strong> Hold your device steady and ensure the entire PDF417 barcode fits within the wide frame. The barcode is on the back of SA driver's licenses.
+                <strong>Tip:</strong> The PDF417 barcode is TALL and NARROW. Make sure the ENTIRE vertical barcode (from top to bottom) fits within the frame. It's on the right side of the back of SA licenses.
               </AlertDescription>
             </Alert>
 
