@@ -329,13 +329,6 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
         {isScanning && (
           <div className="space-y-4">
-            {/* Html5Qrcode scanner container */}
-            <div 
-              id={scannerDivId}
-              className="relative w-full rounded-xl overflow-hidden border-2 border-secondary shadow-glow"
-              style={{ minHeight: '400px' }}
-            />
-
             <Alert className="bg-secondary/5 border-secondary/20">
               <AlertCircle className="h-4 w-4 text-secondary flex-shrink-0" />
               <AlertDescription className="text-xs sm:text-sm">
