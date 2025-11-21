@@ -45,9 +45,13 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setRegionOfInterest(10, 20, 80, 60);
 
         // Configure for better accuracy
-        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Normal);
+        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Slow); // Use slow for better accuracy
         barkoder.setCameraResolution(barkoder.constants.CameraResolution.FHD);
         barkoder.setRegionOfInterestVisible(true);
+
+        // Enable maximum scanning sensitivity
+        barkoder.setMaximumResultsCount(1);
+        barkoder.setDuplicatesDelayMs(0);
 
         // Single scan mode (not continuous)
         barkoder.setContinuous(false);
@@ -315,24 +319,93 @@ const ScanLicense = ({ onLicenseAdded }) => {
         try {
           console.log(`Image loaded: ${img.width}x${img.height}px`);
 
-          // Create canvas to process image
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+          // Function to preprocess and scan image
+          const preprocessAndScan = async (enhanceContrast = false, convertToGrayscale = false) => {
+            // Create canvas to process image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-          // Set canvas dimensions to match image
-          canvas.width = img.width;
-          canvas.height = img.height;
+            // Upscale small images for better detection (minimum 1000px width)
+            const minWidth = 1000;
+            let targetWidth = img.width;
+            let targetHeight = img.height;
 
-          // Draw image to canvas
-          ctx.drawImage(img, 0, 0);
+            if (img.width < minWidth) {
+              const scale = minWidth / img.width;
+              targetWidth = minWidth;
+              targetHeight = Math.floor(img.height * scale);
+              console.log(`Upscaling image from ${img.width}x${img.height} to ${targetWidth}x${targetHeight}`);
+            }
 
-          // Get image data URL
-          const imageDataURL = canvas.toDataURL('image/png');
-          console.log('Image converted to data URL, scanning...');
+            // Set canvas dimensions
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
 
-          // Scan the image using Barkoder
-          const result = await barkoderInstance.scanImage(imageDataURL);
-          console.log('Barkoder image scan result:', result);
+            // Draw image to canvas (with scaling if needed)
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            // Apply image enhancements if requested
+            if (enhanceContrast || convertToGrayscale) {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const data = imageData.data;
+
+              for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                if (convertToGrayscale) {
+                  // Convert to grayscale
+                  const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                  r = g = b = gray;
+                }
+
+                if (enhanceContrast) {
+                  // Increase contrast (factor 1.5)
+                  const factor = 1.5;
+                  r = Math.min(255, Math.max(0, ((r - 128) * factor) + 128));
+                  g = Math.min(255, Math.max(0, ((g - 128) * factor) + 128));
+                  b = Math.min(255, Math.max(0, ((b - 128) * factor) + 128));
+                }
+
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+              }
+
+              ctx.putImageData(imageData, 0, 0);
+              console.log(`Applied enhancements: contrast=${enhanceContrast}, grayscale=${convertToGrayscale}`);
+            }
+
+            // Get image data URL
+            const imageDataURL = canvas.toDataURL('image/png');
+            console.log('Image converted to data URL, scanning...');
+
+            // Scan the image using Barkoder
+            const result = await barkoderInstance.scanImage(imageDataURL);
+            console.log('Barkoder image scan result:', result);
+
+            return result;
+          };
+
+          // Try multiple scanning strategies
+          let result = null;
+
+          // Strategy 1: Original image
+          console.log('Strategy 1: Scanning original/upscaled image...');
+          result = await preprocessAndScan(false, false);
+
+          // Strategy 2: Enhanced contrast if first attempt failed
+          if (!result || result.resultsCount === 0) {
+            console.log('Strategy 2: Scanning with enhanced contrast...');
+            result = await preprocessAndScan(true, false);
+          }
+
+          // Strategy 3: Grayscale + enhanced contrast if still no result
+          if (!result || result.resultsCount === 0) {
+            console.log('Strategy 3: Scanning grayscale with enhanced contrast...');
+            result = await preprocessAndScan(true, true);
+          }
 
           // Clean up
           URL.revokeObjectURL(imageUrl);
@@ -351,9 +424,9 @@ const ScanLicense = ({ onLicenseAdded }) => {
             handleScanResult(result);
             setIsProcessingImage(false);
           } else {
-            console.warn('No barcode detected in image');
-            setError('No PDF417 barcode detected. Please ensure the barcode is clearly visible and in focus.');
-            toast.error('No barcode detected in image');
+            console.warn('No barcode detected after trying all strategies');
+            setError('No PDF417 barcode detected. Please ensure: (1) The barcode is clearly visible and in focus, (2) Good lighting without glare, (3) The image is not blurry.');
+            toast.error('No barcode detected - Try taking a clearer photo');
             setIsProcessingImage(false);
           }
         } catch (err) {
