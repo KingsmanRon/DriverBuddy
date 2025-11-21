@@ -470,10 +470,10 @@ function setupDevServer(config) {
           try {
             // Use -c flag for per-invocation git config to avoid modifying any config
             execSync(
-              `git -c user.name="visual-edit" -c user.email="support@emergent.sh" add "${targetFile}"`,
+              `git -c user.name="visual-edit" -c user.email="noreply@localhost" add "${targetFile}"`,
             );
             execSync(
-              `git -c user.name="visual-edit" -c user.email="support@emergent.sh" commit -m "visual_edit_${timestamp}"`,
+              `git -c user.name="visual-edit" -c user.email="noreply@localhost" commit -m "visual_edit_${timestamp}"`,
             );
           } catch (gitError) {
             console.error(`Git commit failed: ${gitError.message}`);
