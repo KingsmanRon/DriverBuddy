@@ -94,53 +94,18 @@ webpackConfig.devServer = (devServerConfig) => {
     devServerConfig = setupDevServer(devServerConfig);
   }
 
-  // Add health check endpoints if enabled
-  if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
-    const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
-
-    devServerConfig.setupMiddlewares = (middlewares, devServer) => {
-      // Call original setup if exists
-      if (originalSetupMiddlewares) {
-        middlewares = originalSetupMiddlewares(middlewares, devServer);
-      }
-
-      // Setup health endpoints
-      setupHealthEndpoints(devServer, healthPluginInstance);
-
-      return middlewares;
-    };
-  }
-
-  // Configure WASM MIME type
-  devServerConfig.headers = {
-    ...devServerConfig.headers,
-    'Cross-Origin-Embedder-Policy': 'require-corp',
-    'Cross-Origin-Opener-Policy': 'same-origin',
-  };
-
-  // Add static configuration for WASM files
-  devServerConfig.static = devServerConfig.static || {};
-  if (Array.isArray(devServerConfig.static)) {
-    devServerConfig.static.push({
-      directory: path.join(__dirname, 'public'),
-      publicPath: '/',
-    });
-  } else {
-    devServerConfig.static = [
-      devServerConfig.static,
-      {
-        directory: path.join(__dirname, 'public'),
-        publicPath: '/',
-      }
-    ];
-  }
-
-  // Setup middleware for WASM files
+  // Store original setupMiddlewares for later use
   const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
+
   devServerConfig.setupMiddlewares = (middlewares, devServer) => {
     // Call original setup if exists
     if (originalSetupMiddlewares) {
       middlewares = originalSetupMiddlewares(middlewares, devServer);
+    }
+
+    // Add health check endpoints if enabled
+    if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
+      setupHealthEndpoints(devServer, healthPluginInstance);
     }
 
     // Add express middleware to serve WASM files with correct MIME type
