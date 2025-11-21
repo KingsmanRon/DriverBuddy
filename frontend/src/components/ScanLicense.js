@@ -53,8 +53,15 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setMaximumResultsCount(1);
         barkoder.setDuplicatesDelayMs(0);
 
-        // Enable data formatting and parsing
-        barkoder.setFormattingType(barkoder.constants.FormattingType.Automatic);
+        // Try to enable data formatting and parsing if available
+        try {
+          if (barkoder.constants.FormattingType && barkoder.setFormattingType) {
+            barkoder.setFormattingType(barkoder.constants.FormattingType.Automatic);
+            console.log('Formatting type set to Automatic');
+          }
+        } catch (e) {
+          console.log('FormattingType not available:', e.message);
+        }
 
         // Try to enable parsers if available (SADL for SA licenses, AAMVA for other licenses)
         try {
