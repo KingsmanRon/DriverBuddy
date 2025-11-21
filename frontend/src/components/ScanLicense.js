@@ -38,10 +38,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setEnabledDecoders(
           barkoder.constants.Decoders.PDF417,
           barkoder.constants.Decoders.Code128,
-          barkoder.constants.Decoders.Code39,
-          barkoder.constants.Decoders.QR,
-          barkoder.constants.Decoders.DataMatrix,
-          barkoder.constants.Decoders.Aztec
+          barkoder.constants.Decoders.Code39
         );
 
         // Set region of interest (focused scanning area)
