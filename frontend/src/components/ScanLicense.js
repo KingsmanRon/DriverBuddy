@@ -53,6 +53,21 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setMaximumResultsCount(1);
         barkoder.setDuplicatesDelayMs(0);
 
+        // Enable data formatting and parsing
+        barkoder.setFormattingType(barkoder.constants.FormattingType.Automatic);
+
+        // Try to enable parsers if available (SADL for SA licenses, AAMVA for other licenses)
+        try {
+          if (barkoder.enableParser) {
+            console.log('Attempting to enable Barkoder parsers...');
+            // Enable SADL parser for South African Driver's License
+            barkoder.enableParser(true);
+            console.log('Barkoder parsers enabled');
+          }
+        } catch (e) {
+          console.log('Parser configuration not available or failed:', e.message);
+        }
+
         // Single scan mode (not continuous)
         barkoder.setContinuous(false);
 
@@ -124,13 +139,25 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
   const handleScanResult = (result) => {
     console.log('Processing scan result:', result);
+    console.log('Result object keys:', Object.keys(result));
+    console.log('Full result object:', JSON.stringify(result, null, 2));
 
-    // Get barcode data from result
-    const barcodeData = result.textualData || result.data || result;
-    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
+    // Get barcode data from result - check multiple possible properties
+    const barcodeData = result.textualData || result.data || result.text || result.rawData || result;
+    const barcodeType = result.barcodeTypeName || result.type || result.symbology || 'Unknown';
 
     console.log('Barcode type:', barcodeType);
-    console.log('Barcode data:', barcodeData);
+    console.log('Barcode data (raw):', barcodeData);
+    console.log('Barcode data type:', typeof barcodeData);
+    console.log('Barcode data length:', barcodeData?.length || 0);
+
+    // If result has extra data or parsed data, log that too
+    if (result.extra) {
+      console.log('Result extra data:', result.extra);
+    }
+    if (result.parsedData) {
+      console.log('Result parsed data:', result.parsedData);
+    }
 
     // Parse the barcode data - SA licenses use PDF417 format
     // The data structure follows AAMVA DL/ID Card Design Standard
