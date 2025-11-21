@@ -4,74 +4,100 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Scan, Camera, AlertCircle, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { Html5Qrcode } from 'html5-qrcode';
+import BarkoderSDK from 'barkoder-wasm';
 
 const ScanLicense = ({ onLicenseAdded }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const html5QrCodeRef = useRef(null);
+  const [barkoderInstance, setBarkoderInstance] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const fileInputRef = useRef(null);
-  const scannerDivId = 'qr-reader';
 
+  // Initialize Barkoder SDK
   useEffect(() => {
-    // Initialize Html5Qrcode scanner
-    try {
-      html5QrCodeRef.current = new Html5Qrcode(scannerDivId);
-      console.log('Html5Qrcode scanner initialized successfully');
-      console.log('Scanner supports PDF417:', true);
-    } catch (error) {
-      console.error('Failed to initialize Html5Qrcode:', error);
-      toast.error('Barcode scanner initialization failed');
-    }
+    const initializeBarkoder = async () => {
+      try {
+        console.log('Initializing Barkoder SDK...');
 
+        // Get license key from environment
+        const licenseKey = process.env.REACT_APP_BARKODER_LICENSE_KEY;
+
+        if (!licenseKey) {
+          throw new Error('Barkoder license key not found. Please set REACT_APP_BARKODER_LICENSE_KEY in .env file');
+        }
+
+        // Initialize Barkoder with license key
+        const barkoder = await BarkoderSDK.initialize(licenseKey);
+
+        console.log('Barkoder SDK initialized successfully');
+
+        // Configure for PDF417 (primary format on SA driver's licenses)
+        barkoder.setEnabledDecoders(
+          barkoder.constants.Decoders.PDF417,
+          barkoder.constants.Decoders.Code128,
+          barkoder.constants.Decoders.Code39,
+          barkoder.constants.Decoders.QR,
+          barkoder.constants.Decoders.DataMatrix,
+          barkoder.constants.Decoders.Aztec
+        );
+
+        // Set region of interest (focused scanning area)
+        barkoder.setRegionOfInterest(10, 20, 80, 60);
+
+        // Configure for better accuracy
+        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Normal);
+        barkoder.setCameraResolution(barkoder.constants.CameraResolution.FHD);
+        barkoder.setRegionOfInterestVisible(true);
+
+        // Single scan mode (not continuous)
+        barkoder.setContinuous(false);
+
+        setBarkoderInstance(barkoder);
+        setIsInitialized(true);
+
+        console.log('Barkoder configured for PDF417 barcode scanning');
+        toast.success('Scanner ready');
+      } catch (err) {
+        console.error('Barkoder initialization error:', err);
+        setError(`Scanner initialization failed: ${err.message}`);
+        toast.error('Failed to initialize barcode scanner');
+      }
+    };
+
+    initializeBarkoder();
+
+    // Cleanup on unmount
     return () => {
-      stopScanning();
+      if (barkoderInstance) {
+        try {
+          barkoderInstance.stopScanner();
+        } catch (e) {
+          console.log('Cleanup error:', e);
+        }
+      }
     };
   }, []);
 
   const startScanning = async () => {
+    if (!barkoderInstance || !isInitialized) {
+      toast.error('Scanner not ready. Please wait...');
+      return;
+    }
+
     try {
       setIsScanning(true);
       setError(null);
       setScanSuccess(false);
 
-      if (!html5QrCodeRef.current) {
-        throw new Error('Scanner not initialized');
-      }
-
       toast.info('Starting camera...');
 
-      // Configure to support PDF417 and other formats
-      const config = {
-        fps: 10,
-        qrbox: { width: 300, height: 400 }, // Tall box for PDF417
-        aspectRatio: 0.75, // 3:4 aspect ratio for vertical barcode
-        formatsToSupport: [
-          Html5Qrcode.SCAN_TYPE_PDF417,
-          Html5Qrcode.SCAN_TYPE_CODE_128,
-          Html5Qrcode.SCAN_TYPE_CODE_39,
-          Html5Qrcode.SCAN_TYPE_QR_CODE
-        ]
-      };
-
-      // Start scanning with back camera
-      await html5QrCodeRef.current.start(
-        { facingMode: "environment" }, // Use back camera
-        config,
-        (decodedText, decodedResult) => {
-          console.log('Html5Qrcode scan result:', decodedText);
-          console.log('Barcode format:', decodedResult.result.format);
-          handleScanResult(decodedText);
-        },
-        (errorMessage) => {
-          // Ignore "NotFoundException" - just means no barcode in frame
-          if (!errorMessage.includes('NotFoundException')) {
-            console.error('Scanning error:', errorMessage);
-          }
-        }
-      );
+      // Start scanning with result callback
+      barkoderInstance.startScanner((result) => {
+        console.log('Barkoder scan result:', result);
+        handleScanResult(result);
+      });
 
       toast.success('Camera ready - Align barcode in frame');
     } catch (err) {
@@ -82,10 +108,10 @@ const ScanLicense = ({ onLicenseAdded }) => {
     }
   };
 
-  const stopScanning = async () => {
+  const stopScanning = () => {
     try {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        await html5QrCodeRef.current.stop();
+      if (barkoderInstance && isScanning) {
+        barkoderInstance.stopScanner();
         console.log('Scanner stopped');
       }
     } catch (error) {
@@ -95,64 +121,122 @@ const ScanLicense = ({ onLicenseAdded }) => {
   };
 
   const handleScanResult = (result) => {
-    console.log('Scan result:', result);
-    
-    // Parse the barcode data - SA licenses use a specific format
-    const barcodeData = result.textualData || result;
-    
-    // SA Driver's License PDF417 format parsing
-    // Expected format has fields like: Document Type, Surname, ID Number, etc.
+    console.log('Processing scan result:', result);
+
+    // Get barcode data from result
+    const barcodeData = result.textualData || result.data || result;
+    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
+
+    console.log('Barcode type:', barcodeType);
+    console.log('Barcode data:', barcodeData);
+
+    // Parse the barcode data - SA licenses use PDF417 format
+    // The data structure follows AAMVA DL/ID Card Design Standard
     const lines = barcodeData.split('\n').filter(line => line.trim());
-    
+
     const licenseData = {};
     lines.forEach(line => {
+      // AAMVA uses 3-letter codes (e.g., DAA, DCS, etc.)
+      if (line.length >= 3) {
+        const code = line.substring(0, 3);
+        const value = line.substring(3).trim();
+        if (value) {
+          licenseData[code] = value;
+        }
+      }
+
+      // Also try key:value parsing for other formats
       const [key, ...valueParts] = line.split(':');
       if (key && valueParts.length > 0) {
         const value = valueParts.join(':').trim();
         licenseData[key.trim()] = value;
       }
     });
-    
+
     console.log('Parsed license data:', licenseData);
-    
-    // Extract fields based on SA format
-    const surname = licenseData['Surname'] || extractField(barcodeData, 'Surname') || 'Unknown';
-    const idNumber = licenseData['ID Number'] || extractField(barcodeData, 'ID Number') || Date.now().toString();
-    const initials = licenseData['Initials'] || extractField(barcodeData, 'Initials') || '';
-    const licenseNumber = licenseData['License Number'] || extractField(barcodeData, 'License Number') || idNumber;
-    const licenseIssueNumber = licenseData['License Issue Number'] || extractField(barcodeData, 'License Issue Number') || '01';
-    
+
+    // Extract fields using AAMVA standard codes
+    // DCS = Last Name/Surname
+    // DAC = First Name
+    // DAD = Middle Name/Initials
+    // DBB = Date of Birth (MMDDCCYY format)
+    // DAQ = License Number
+    // DBA = Expiration Date (MMDDCCYY)
+    // DBD = Issue Date (MMDDCCYY)
+    // DAG = Address Street
+    // DAI = City
+    // DAJ = State
+    // DAK = Postal Code
+    // DBC = Gender (1=M, 2=F)
+
+    const surname = licenseData['DCS'] || licenseData['Surname'] || extractField(barcodeData, 'Surname') || 'Unknown';
+    const firstName = licenseData['DAC'] || licenseData['First Name'] || extractField(barcodeData, 'First Name') || '';
+    const initials = licenseData['DAD'] || licenseData['Initials'] || extractField(barcodeData, 'Initials') || '';
+    const licenseNumber = licenseData['DAQ'] || licenseData['License Number'] || extractField(barcodeData, 'License Number') || Date.now().toString();
+    const idNumber = licenseData['DCK'] || licenseData['ID Number'] || extractField(barcodeData, 'ID Number') || '';
+
     // Construct full name
-    const fullName = initials ? `${initials} ${surname}` : surname;
-    
-    // Extract date of birth from SA ID number (first 6 digits: YYMMDD)
-    let dateOfBirth = '1990-01-01';
-    if (idNumber && idNumber.length >= 6) {
+    const fullName = firstName ? `${firstName} ${surname}` : (initials ? `${initials} ${surname}` : surname);
+
+    // Parse dates (AAMVA format is MMDDCCYY)
+    const parseDateAAMVA = (dateStr) => {
+      if (!dateStr || dateStr.length < 8) return null;
+      const mm = dateStr.substring(0, 2);
+      const dd = dateStr.substring(2, 4);
+      const ccyy = dateStr.substring(4, 8);
+      return `${ccyy}-${mm}-${dd}`;
+    };
+
+    let dateOfBirth = parseDateAAMVA(licenseData['DBB']) || extractField(barcodeData, 'Date of Birth');
+
+    // If DOB not found, try to extract from SA ID number (YYMMDD)
+    if (!dateOfBirth && idNumber && idNumber.length >= 6) {
       const yy = idNumber.substring(0, 2);
       const mm = idNumber.substring(2, 4);
       const dd = idNumber.substring(4, 6);
       const year = parseInt(yy) > 50 ? `19${yy}` : `20${yy}`;
       dateOfBirth = `${year}-${mm}-${dd}`;
     }
-    
+
+    // Default if still not found
+    if (!dateOfBirth) {
+      dateOfBirth = '1990-01-01';
+    }
+
+    const issueDate = parseDateAAMVA(licenseData['DBD']) || new Date().toISOString().split('T')[0];
+    const expiryDate = parseDateAAMVA(licenseData['DBA']) || calculateExpiryFromDOB(dateOfBirth);
+
+    // Extract address
+    const street = licenseData['DAG'] || '';
+    const city = licenseData['DAI'] || '';
+    const state = licenseData['DAJ'] || '';
+    const postalCode = licenseData['DAK'] || '';
+    const address = [street, city, state, postalCode].filter(Boolean).join(', ') || 'South Africa';
+
+    // Extract license class
+    const licenseClass = licenseData['DCA'] || 'B';
+
     // Create license object
     const license = {
       id: Date.now().toString(),
       licenseNumber: licenseNumber,
       fullName: fullName,
       surname: surname,
+      firstName: firstName,
       initials: initials,
       idNumber: idNumber,
-      licenseIssueNumber: licenseIssueNumber,
       dateOfBirth: dateOfBirth,
-      address: 'South Africa',
-      licenseClass: 'B',
-      issueDate: new Date().toISOString().split('T')[0],
-      expiryDate: calculateExpiryFromDOB(dateOfBirth),
+      address: address,
+      licenseClass: licenseClass,
+      issueDate: issueDate,
+      expiryDate: expiryDate,
+      barcodeType: barcodeType,
       scannedData: barcodeData,
       rawData: licenseData,
       createdAt: new Date().toISOString(),
     };
+
+    console.log('Created license object:', license);
 
     // Store in localStorage
     const licenses = JSON.parse(localStorage.getItem('driverLicenses') || '[]');
@@ -162,7 +246,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
     setScanSuccess(true);
     stopScanning();
     toast.success(`License scanned: ${fullName}`);
-    
+
     setTimeout(() => {
       onLicenseAdded?.();
     }, 1500);
@@ -180,21 +264,26 @@ const ScanLicense = ({ onLicenseAdded }) => {
     const birthDate = new Date(dob);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
-    
+
     const expiryDate = new Date(today);
     if (age < 65) {
       expiryDate.setFullYear(expiryDate.getFullYear() + 5);
     } else {
       expiryDate.setFullYear(expiryDate.getFullYear() + 2);
     }
-    
+
     return expiryDate.toISOString().split('T')[0];
   };
 
-  // Handle image upload using Html5Qrcode
+  // Handle image upload using Barkoder
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (!barkoderInstance || !isInitialized) {
+      toast.error('Scanner not ready. Please wait...');
+      return;
+    }
 
     // Check file type
     if (!file.type.startsWith('image/')) {
@@ -212,29 +301,44 @@ const ScanLicense = ({ onLicenseAdded }) => {
     toast.info('Processing image...');
 
     try {
-      if (!html5QrCodeRef.current) {
-        throw new Error('Scanner not initialized');
-      }
-
       console.log('Scanning image file for barcode...');
 
-      // Scan the uploaded file directly
-      const decodedText = await html5QrCodeRef.current.scanFile(file, true);
-      
-      console.log('Html5Qrcode image scan result:', decodedText);
-      handleScanResult(decodedText);
-      
+      // Create a file reader to convert file to data URL
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const imageData = e.target.result;
+
+          // Scan the image using Barkoder
+          barkoderInstance.scanImage(imageData, (result) => {
+            console.log('Barkoder image scan result:', result);
+
+            if (result && (result.textualData || result.data)) {
+              handleScanResult(result);
+            } else {
+              throw new Error('No barcode detected in image');
+            }
+          });
+        } catch (err) {
+          console.error('Image scanning error:', err);
+          toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+          setIsProcessingImage(false);
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error('Failed to read image file');
+        setIsProcessingImage(false);
+      };
+
+      reader.readAsDataURL(file);
+
     } catch (err) {
       console.error('Image processing error:', err);
-      toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+      toast.error('Could not process image. Please try again.');
       setIsProcessingImage(false);
     }
-  };
-
-  const simulateScan = () => {
-    const mockBarcodeData = `@\nANSI 636000010002DL00410278ZA03290015DLDAQD12345678\nDCSJOHN\nDDEN\nDACDOE\nDDFN\nDADMIDDLE\nDDGN\nDCAB\nDCBNONE\nDCDNONE\nDBD09012020\nDBB01011990\nDBA09012030\nDBC1\nDAU178 cm\nDAYBRN\nDAG123 MAIN STREET\nDAICAPE TOWN\nDAJWC\nDAK80001ZA0\nDCF83X20202Z1234567\nDCGZAF\nDCK12345678901234\nDDAM\nDDB09012018\nDDC09012020\n`;
-    
-    handleScanResult(mockBarcodeData);
   };
 
   return (
@@ -252,9 +356,9 @@ const ScanLicense = ({ onLicenseAdded }) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Always render scanner div but hide it when not scanning */}
-        <div 
-          id={scannerDivId}
+        {/* Barkoder scanner container */}
+        <div
+          id="barkoder-container"
           className={`${isScanning ? 'block' : 'hidden'} relative w-full rounded-xl overflow-hidden border-2 border-secondary shadow-glow`}
           style={{ minHeight: '400px' }}
         />
@@ -265,24 +369,29 @@ const ScanLicense = ({ onLicenseAdded }) => {
               <div className="text-center space-y-4 p-4 sm:p-6">
                 <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground" />
                 <div>
-                  <h3 className="font-semibold text-base sm:text-lg text-foreground mb-1">Ready to Scan</h3>
+                  <h3 className="font-semibold text-base sm:text-lg text-foreground mb-1">
+                    {isInitialized ? 'Ready to Scan' : 'Initializing Scanner...'}
+                  </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground px-2">
-                    Position the barcode within the frame
+                    {isInitialized
+                      ? 'Position the PDF417 barcode within the frame'
+                      : 'Please wait while the scanner loads...'}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button 
+              <Button
                 onClick={startScanning}
-                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold bg-secondary hover:bg-secondary-light transition-colors"
+                disabled={!isInitialized}
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold bg-secondary hover:bg-secondary-light transition-colors disabled:opacity-50"
                 size="lg"
               >
                 <Camera className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Start Camera
+                {isInitialized ? 'Start Camera' : 'Loading Scanner...'}
               </Button>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -290,11 +399,12 @@ const ScanLicense = ({ onLicenseAdded }) => {
                 onChange={handleImageUpload}
                 className="hidden"
               />
-              
-              <Button 
+
+              <Button
                 onClick={() => fileInputRef.current?.click()}
+                disabled={!isInitialized}
                 variant="outline"
-                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-2"
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-2 disabled:opacity-50"
                 size="lg"
               >
                 <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -305,7 +415,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
             <Alert className="bg-secondary/5 border-secondary/20">
               <AlertCircle className="h-4 w-4 text-secondary flex-shrink-0" />
               <AlertDescription className="text-xs sm:text-sm">
-                For best results, ensure good lighting and clear focus on the barcode. You can scan directly or upload a photo.
+                <strong>Barkoder SDK Active:</strong> Professional-grade PDF417 scanning for SA driver's licenses. Ensure good lighting and clear focus on the barcode.
               </AlertDescription>
             </Alert>
           </div>
@@ -321,7 +431,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
                 Processing Image...
               </h3>
               <p className="text-sm text-muted-foreground">
-                Analyzing barcode from uploaded photo
+                Analyzing PDF417 barcode from uploaded photo
               </p>
             </div>
           </div>
@@ -332,11 +442,11 @@ const ScanLicense = ({ onLicenseAdded }) => {
             <Alert className="bg-secondary/5 border-secondary/20">
               <AlertCircle className="h-4 w-4 text-secondary flex-shrink-0" />
               <AlertDescription className="text-xs sm:text-sm">
-                <strong>Important:</strong> The PDF417 barcode on SA licenses is a TALL NARROW rectangle on the right side of the back. Align it within the scanning box for best results.
+                <strong>Tip:</strong> The PDF417 barcode on SA licenses is a tall, narrow rectangle on the back of the card. Center it in the scanning frame for best results.
               </AlertDescription>
             </Alert>
 
-            <Button 
+            <Button
               onClick={stopScanning}
               variant="outline"
               className="w-full h-11 text-sm font-semibold border-2"
