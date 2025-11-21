@@ -253,38 +253,33 @@ const ScanLicense = ({ onLicenseAdded }) => {
           console.log('Latin-1 First 200 chars:', decodedData.substring(0, 200));
         }
 
-        // If still no good data, try decompression
+        // If still no good data, log the hex dump for analysis
         if (decodedData.length < 50 || decodedData.trim().length < 20) {
-          console.log('Data appears compressed, attempting decompression...');
+          console.log('Data appears to be in a special format, logging hex dump...');
 
-          try {
-            // Try to decompress using pako (if available) or native decompression
-            // Check if data starts with deflate/zlib magic bytes
-            const firstByte = actualResult.binaryData[0];
-            const secondByte = actualResult.binaryData[1];
+          // Log the first bytes as hex for analysis
+          const firstByte = actualResult.binaryData[0];
+          const secondByte = actualResult.binaryData[1];
 
-            console.log(`First two bytes: ${firstByte}, ${secondByte} (0x${firstByte.toString(16)}, 0x${secondByte.toString(16)})`);
+          console.log(`First two bytes: ${firstByte}, ${secondByte} (0x${firstByte.toString(16)}, 0x${secondByte.toString(16)})`);
 
-            // Check for zlib header (0x78 0x9C or similar)
-            if ((firstByte === 0x78 && (secondByte === 0x9C || secondByte === 0x01 || secondByte === 0xDA)) ||
-                firstByte === 0x1F && secondByte === 0x8B) {
-              console.log('Detected compressed data format');
+          // Log first 100 bytes as hex
+          const hexDump = actualResult.binaryData.slice(0, 100)
+            .map(b => '0x' + b.toString(16).padStart(2, '0'))
+            .join(' ');
+          console.log('First 100 bytes (hex):', hexDump);
 
-              // Try using DecompressionStream (modern browsers)
-              if (typeof DecompressionStream !== 'undefined') {
-                const blob = new Blob([binaryArray]);
-                const stream = blob.stream().pipeThrough(new DecompressionStream('deflate'));
-                const decompressedBlob = await new Response(stream).blob();
-                const decompressedArray = new Uint8Array(await decompressedBlob.arrayBuffer());
-                decodedData = new TextDecoder('utf-8').decode(decompressedArray);
-                console.log('Decompressed data length:', decodedData.length);
-                console.log('Decompressed first 200 chars:', decodedData.substring(0, 200));
-              } else {
-                console.log('DecompressionStream not available');
-              }
-            }
-          } catch (decompressionError) {
-            console.error('Decompression failed:', decompressionError);
+          // Check for common compression signatures
+          if ((firstByte === 0x78 && (secondByte === 0x9C || secondByte === 0x01 || secondByte === 0xDA))) {
+            console.log('Detected zlib/deflate compressed data (0x78 0x9C)');
+          } else if (firstByte === 0x1F && secondByte === 0x8B) {
+            console.log('Detected gzip compressed data (0x1F 0x8B)');
+          } else if (firstByte === 0x50 && secondByte === 0x4B) {
+            console.log('Detected ZIP archive data (0x50 0x4B)');
+          } else if (firstByte === 0x01 && secondByte === 0x9B) {
+            console.log('Detected possible proprietary format (0x01 0x9B)');
+          } else {
+            console.log('Unknown binary format - may be proprietary Barkoder encoding');
           }
         }
 
