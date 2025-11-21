@@ -203,19 +203,43 @@ const ScanLicense = ({ onLicenseAdded }) => {
     if (parsedLicenseData) {
       console.log('Using auto-parsed license data from Barkoder');
 
+      // Helper function to extract field values from SADL Fields array
+      const getFieldValue = (fieldName) => {
+        if (parsedLicenseData.Fields && Array.isArray(parsedLicenseData.Fields)) {
+          const field = parsedLicenseData.Fields.find(f => f.Field === fieldName);
+          return field?.Value || field?.Values?.[0] || '';
+        }
+        return '';
+      };
+
+      // Extract all fields from SADL parsed data
+      const surname = getFieldValue('Surname');
+      const initials = getFieldValue('Initials');
+      const licenseNumber = getFieldValue('License Number');
+      const idNumber = getFieldValue('ID Number');
+      const birthdate = getFieldValue('Birthdate');
+      const issueDate = getFieldValue('License Issue Date');
+      const expiryDate = getFieldValue('License Expiry Date');
+      const gender = getFieldValue('Gender');
+      const vehicleCodes = getFieldValue('Vehicle Codes');
+
+      // Construct full name from surname and initials
+      const fullName = `${initials} ${surname}`.trim() || 'Unknown';
+
       const license = {
         id: Date.now().toString(),
-        licenseNumber: parsedLicenseData.licenseNumber || parsedLicenseData.documentNumber || Date.now().toString(),
-        fullName: parsedLicenseData.fullName || `${parsedLicenseData.firstName || ''} ${parsedLicenseData.lastName || ''}`.trim() || 'Unknown',
-        surname: parsedLicenseData.lastName || parsedLicenseData.surname || 'Unknown',
-        firstName: parsedLicenseData.firstName || parsedLicenseData.givenName || '',
-        initials: parsedLicenseData.initials || '',
-        idNumber: parsedLicenseData.idNumber || parsedLicenseData.nationalId || '',
-        dateOfBirth: parsedLicenseData.birthDate || parsedLicenseData.dateOfBirth || '1990-01-01',
-        address: parsedLicenseData.address || 'South Africa',
-        licenseClass: parsedLicenseData.licenseClass || parsedLicenseData.vehicleClass || 'B',
-        issueDate: parsedLicenseData.issueDate || parsedLicenseData.dateOfIssue || new Date().toISOString().split('T')[0],
-        expiryDate: parsedLicenseData.expiryDate || parsedLicenseData.dateOfExpiry || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        licenseNumber: licenseNumber || Date.now().toString(),
+        fullName: fullName,
+        surname: surname || 'Unknown',
+        firstName: initials || '', // SADL doesn't have full first name, only initials
+        initials: initials || '',
+        idNumber: idNumber || '',
+        dateOfBirth: birthdate || '1990-01-01',
+        address: 'South Africa', // SADL doesn't include address in barcode
+        licenseClass: vehicleCodes || 'B',
+        issueDate: issueDate || new Date().toISOString().split('T')[0],
+        expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        gender: gender || '',
         barcodeType: barcodeType,
         scannedData: barcodeData,
         parsedData: parsedLicenseData,
