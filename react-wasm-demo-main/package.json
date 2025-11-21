@@ -1,0 +1,40 @@
+{
+  "name": "barkoder-wasm-reactjs-demo",
+  "version": "1.0.0",
+  "author": "Barkoder",
+  "homepage": "./",
+  "private": true,
+  "dependencies": {
+    "barkoder-wasm": "^1.4.2",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0",
+    "react-icons": "^5.5.0",
+    "react-scripts": "5.0.1",
+    "react-transition-group": "^4.4.5",
+    "react-webcam": "^7.0.1",
+    "shx": "^0.3.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "prebuild": "node -e \"var fs = require('fs'); if(!fs.existsSync('public/static')){fs.mkdirSync('public/static');fs.mkdirSync('public/static/js');}else if(!fs.existsSync('public/static/js')){fs.mkdirSync('public/static/js');}\" && shx cp ./node_modules/barkoder-wasm/barkoder.wasm public/static/js && shx cp ./node_modules/barkoder-wasm/barkoder_nosimd.wasm public/static/js",
+    "build": "react-scripts build",
+    "postbuild": "",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
