@@ -16,9 +16,16 @@
             window.Module = {
                 locateFile: function(path) {
                     console.log('[Barkoder] locateFile called with path:', path);
-                    // WASM files are in the public folder, accessible from root
+                    // Try multiple possible locations for WASM files
                     if (path.endsWith('.wasm')) {
-                        const fullPath = '/' + path;
+                        // In production, webpack copies to static/js/
+                        // In development, we serve from public/
+                        const possiblePaths = [
+                            '/static/js/' + path,
+                            '/' + path,
+                            '/public/' + path
+                        ];
+                        const fullPath = possiblePaths[0]; // Try static/js first
                         console.log('[Barkoder] Returning WASM path:', fullPath);
                         return fullPath;
                     }
