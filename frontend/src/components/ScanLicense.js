@@ -296,45 +296,97 @@ const ScanLicense = ({ onLicenseAdded }) => {
     }
 
     setIsProcessingImage(true);
+    setError(null);
     toast.info('Processing image...');
 
     try {
       console.log('Scanning image file for barcode...');
 
-      // Create a file reader to convert file to data URL
-      const reader = new FileReader();
+      // Temporarily disable ROI for full-image scanning
+      const originalROI = { x: 10, y: 20, width: 80, height: 60 };
+      barkoderInstance.setRegionOfInterest(0, 0, 100, 100);
+      console.log('ROI set to full image for scanning');
 
-      reader.onload = async (e) => {
+      // Create image element to load the file
+      const img = new Image();
+      const imageUrl = URL.createObjectURL(file);
+
+      img.onload = async () => {
         try {
-          const imageData = e.target.result;
+          console.log(`Image loaded: ${img.width}x${img.height}px`);
+
+          // Create canvas to process image
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Set canvas dimensions to match image
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          // Draw image to canvas
+          ctx.drawImage(img, 0, 0);
+
+          // Get image data URL
+          const imageDataURL = canvas.toDataURL('image/png');
+          console.log('Image converted to data URL, scanning...');
 
           // Scan the image using Barkoder
-          barkoderInstance.scanImage(imageData, (result) => {
-            console.log('Barkoder image scan result:', result);
+          const result = await barkoderInstance.scanImage(imageDataURL);
+          console.log('Barkoder image scan result:', result);
 
-            if (result && (result.textualData || result.data)) {
-              handleScanResult(result);
-            } else {
-              throw new Error('No barcode detected in image');
-            }
-          });
+          // Clean up
+          URL.revokeObjectURL(imageUrl);
+
+          // Restore original ROI for camera scanning
+          barkoderInstance.setRegionOfInterest(
+            originalROI.x,
+            originalROI.y,
+            originalROI.width,
+            originalROI.height
+          );
+
+          // Check if barcode was detected
+          if (result && result.resultsCount > 0 && (result.textualData || result.data)) {
+            console.log('Barcode detected successfully');
+            handleScanResult(result);
+            setIsProcessingImage(false);
+          } else {
+            console.warn('No barcode detected in image');
+            setError('No PDF417 barcode detected. Please ensure the barcode is clearly visible and in focus.');
+            toast.error('No barcode detected in image');
+            setIsProcessingImage(false);
+          }
         } catch (err) {
           console.error('Image scanning error:', err);
-          toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+          URL.revokeObjectURL(imageUrl);
+
+          // Restore original ROI
+          barkoderInstance.setRegionOfInterest(
+            originalROI.x,
+            originalROI.y,
+            originalROI.width,
+            originalROI.height
+          );
+
+          setError('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+          toast.error('Barcode detection failed');
           setIsProcessingImage(false);
         }
       };
 
-      reader.onerror = () => {
-        toast.error('Failed to read image file');
+      img.onerror = () => {
+        console.error('Failed to load image');
+        URL.revokeObjectURL(imageUrl);
+        toast.error('Failed to load image file');
         setIsProcessingImage(false);
       };
 
-      reader.readAsDataURL(file);
+      img.src = imageUrl;
 
     } catch (err) {
       console.error('Image processing error:', err);
-      toast.error('Could not process image. Please try again.');
+      setError('Could not process image. Please try again.');
+      toast.error('Image processing failed');
       setIsProcessingImage(false);
     }
   };
