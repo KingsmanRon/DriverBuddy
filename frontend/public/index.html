@@ -15,13 +15,18 @@
             // Set up Module configuration before any WASM modules load
             window.Module = {
                 locateFile: function(path) {
+                    console.log('[Barkoder] locateFile called with path:', path);
                     // WASM files are in the public folder, accessible from root
                     if (path.endsWith('.wasm')) {
-                        return '/' + path;
+                        const fullPath = '/' + path;
+                        console.log('[Barkoder] Returning WASM path:', fullPath);
+                        return fullPath;
                     }
+                    console.log('[Barkoder] Returning default path:', path);
                     return path;
                 }
             };
+            console.log('[Barkoder] Module.locateFile configured');
         </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
