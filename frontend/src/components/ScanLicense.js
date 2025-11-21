@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Scan, Camera, AlertCircle, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { BarkoderSDK } from 'barkoder-wasm';
+import BarkoderSDK from 'barkoder-wasm';
 
 const ScanLicense = ({ onLicenseAdded }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -14,7 +14,6 @@ const ScanLicense = ({ onLicenseAdded }) => {
   const [barkoderInstance, setBarkoderInstance] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const fileInputRef = useRef(null);
-  const containerRef = useRef(null);
 
   // Initialize Barkoder SDK
   useEffect(() => {
@@ -30,41 +29,30 @@ const ScanLicense = ({ onLicenseAdded }) => {
         }
 
         // Initialize Barkoder with license key
-        const barkoder = await BarkoderSDK.initialize(licenseKey, {
-          container: containerRef.current,
-        });
+        const barkoder = await BarkoderSDK.initialize(licenseKey);
 
         console.log('Barkoder SDK initialized successfully');
 
         // Configure for PDF417 (primary format on SA driver's licenses)
-        await barkoder.setEnabledDecoders([
-          'PDF417',
-          'Code128',
-          'Code39',
-          'QRCode',
-          'DataMatrix',
-          'Aztec'
-        ]);
+        barkoder.setEnabledDecoders(
+          barkoder.constants.Decoders.PDF417,
+          barkoder.constants.Decoders.Code128,
+          barkoder.constants.Decoders.Code39,
+          barkoder.constants.Decoders.QR,
+          barkoder.constants.Decoders.DataMatrix,
+          barkoder.constants.Decoders.Aztec
+        );
 
-        // Set specific configurations for better PDF417 detection
-        await barkoder.config({
-          // PDF417 specific settings
-          pdf417: {
-            enabled: true,
-            // Optimize for driver's licenses
-            multipartMode: false,
-          },
-          // General settings
-          continuous: false, // Single scan mode
-          deblur: true, // Enable deblurring for better accuracy
-          region: {
-            // Define scanning region for better performance
-            top: 20,
-            left: 10,
-            width: 80,
-            height: 60,
-          },
-        });
+        // Set region of interest (focused scanning area)
+        barkoder.setRegionOfInterest(10, 20, 80, 60);
+
+        // Configure for better accuracy
+        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Normal);
+        barkoder.setCameraResolution(barkoder.constants.CameraResolution.FHD);
+        barkoder.setRegionOfInterestVisible(true);
+
+        // Single scan mode (not continuous)
+        barkoder.setContinuous(false);
 
         setBarkoderInstance(barkoder);
         setIsInitialized(true);
@@ -83,7 +71,11 @@ const ScanLicense = ({ onLicenseAdded }) => {
     // Cleanup on unmount
     return () => {
       if (barkoderInstance) {
-        barkoderInstance.destroy();
+        try {
+          barkoderInstance.stopScanner();
+        } catch (e) {
+          console.log('Cleanup error:', e);
+        }
       }
     };
   }, []);
@@ -102,7 +94,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       toast.info('Starting camera...');
 
       // Start scanning with result callback
-      await barkoderInstance.startScanning((result) => {
+      barkoderInstance.startScanner((result) => {
         console.log('Barkoder scan result:', result);
         handleScanResult(result);
       });
@@ -116,10 +108,10 @@ const ScanLicense = ({ onLicenseAdded }) => {
     }
   };
 
-  const stopScanning = async () => {
+  const stopScanning = () => {
     try {
       if (barkoderInstance && isScanning) {
-        await barkoderInstance.stopScanning();
+        barkoderInstance.stopScanner();
         console.log('Scanner stopped');
       }
     } catch (error) {
@@ -133,7 +125,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
     // Get barcode data from result
     const barcodeData = result.textualData || result.data || result;
-    const barcodeType = result.type || result.barcodeType || 'Unknown';
+    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
 
     console.log('Barcode type:', barcodeType);
     console.log('Barcode data:', barcodeData);
@@ -319,15 +311,15 @@ const ScanLicense = ({ onLicenseAdded }) => {
           const imageData = e.target.result;
 
           // Scan the image using Barkoder
-          const result = await barkoderInstance.scanImage(imageData);
+          barkoderInstance.scanImage(imageData, (result) => {
+            console.log('Barkoder image scan result:', result);
 
-          console.log('Barkoder image scan result:', result);
-
-          if (result && (result.textualData || result.data)) {
-            handleScanResult(result);
-          } else {
-            throw new Error('No barcode detected in image');
-          }
+            if (result && (result.textualData || result.data)) {
+              handleScanResult(result);
+            } else {
+              throw new Error('No barcode detected in image');
+            }
+          });
         } catch (err) {
           console.error('Image scanning error:', err);
           toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
@@ -366,7 +358,6 @@ const ScanLicense = ({ onLicenseAdded }) => {
       <CardContent className="space-y-6">
         {/* Barkoder scanner container */}
         <div
-          ref={containerRef}
           id="barkoder-container"
           className={`${isScanning ? 'block' : 'hidden'} relative w-full rounded-xl overflow-hidden border-2 border-secondary shadow-glow`}
           style={{ minHeight: '400px' }}
