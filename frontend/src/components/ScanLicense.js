@@ -230,14 +230,66 @@ const ScanLicense = ({ onLicenseAdded }) => {
     if (actualResult.binaryData && Array.isArray(actualResult.binaryData)) {
       console.log('Binary data array found, converting to string...');
       console.log('Binary data length:', actualResult.binaryData.length);
+      console.log('First 20 bytes:', actualResult.binaryData.slice(0, 20));
 
-      // Convert binary data array to string
-      // Try different encodings to handle the data correctly
+      // Convert binary data array to Uint8Array for processing
+      const binaryArray = new Uint8Array(actualResult.binaryData);
+
       try {
-        // Method 1: Direct conversion from byte array
-        decodedData = String.fromCharCode(...actualResult.binaryData);
-        console.log('Decoded data from binary (length:', decodedData.length, ')');
-        console.log('First 200 chars:', decodedData.substring(0, 200));
+        // Method 1: Try direct UTF-8 decoding
+        const textDecoder = new TextDecoder('utf-8');
+        decodedData = textDecoder.decode(binaryArray);
+        console.log('UTF-8 decoded length:', decodedData.length);
+        console.log('UTF-8 First 200 chars:', decodedData.substring(0, 200));
+
+        // If we only got a few characters, the data might be compressed
+        if (decodedData.length < 50 || decodedData.includes('\ufffd')) {
+          console.log('UTF-8 decode failed or incomplete, trying Latin-1...');
+
+          // Method 2: Try Latin-1 (ISO-8859-1) decoding
+          const latin1Decoder = new TextDecoder('iso-8859-1');
+          decodedData = latin1Decoder.decode(binaryArray);
+          console.log('Latin-1 decoded length:', decodedData.length);
+          console.log('Latin-1 First 200 chars:', decodedData.substring(0, 200));
+        }
+
+        // If still no good data, try decompression
+        if (decodedData.length < 50 || decodedData.trim().length < 20) {
+          console.log('Data appears compressed, attempting decompression...');
+
+          try {
+            // Try to decompress using pako (if available) or native decompression
+            // Check if data starts with deflate/zlib magic bytes
+            const firstByte = actualResult.binaryData[0];
+            const secondByte = actualResult.binaryData[1];
+
+            console.log(`First two bytes: ${firstByte}, ${secondByte} (0x${firstByte.toString(16)}, 0x${secondByte.toString(16)})`);
+
+            // Check for zlib header (0x78 0x9C or similar)
+            if ((firstByte === 0x78 && (secondByte === 0x9C || secondByte === 0x01 || secondByte === 0xDA)) ||
+                firstByte === 0x1F && secondByte === 0x8B) {
+              console.log('Detected compressed data format');
+
+              // Try using DecompressionStream (modern browsers)
+              if (typeof DecompressionStream !== 'undefined') {
+                const blob = new Blob([binaryArray]);
+                const stream = blob.stream().pipeThrough(new DecompressionStream('deflate'));
+                const decompressedBlob = await new Response(stream).blob();
+                const decompressedArray = new Uint8Array(await decompressedBlob.arrayBuffer());
+                decodedData = new TextDecoder('utf-8').decode(decompressedArray);
+                console.log('Decompressed data length:', decodedData.length);
+                console.log('Decompressed first 200 chars:', decodedData.substring(0, 200));
+              } else {
+                console.log('DecompressionStream not available');
+              }
+            }
+          } catch (decompressionError) {
+            console.error('Decompression failed:', decompressionError);
+          }
+        }
+
+        console.log('Final decoded data from binary (length:', decodedData.length, ')');
+        console.log('Final First 200 chars:', decodedData.substring(0, 200));
       } catch (e) {
         console.error('Error converting binary data:', e);
         // Fallback to original textualData if conversion fails
