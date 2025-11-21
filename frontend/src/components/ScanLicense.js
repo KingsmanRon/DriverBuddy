@@ -149,9 +149,18 @@ const ScanLicense = ({ onLicenseAdded }) => {
     console.log('Result object keys:', Object.keys(result));
     console.log('Full result object:', JSON.stringify(result, null, 2));
 
-    // Barkoder returns textualData directly for the barcode content
-    const barcodeData = result.textualData || result.data || '';
-    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
+    // Barkoder can return results in two ways:
+    // 1. result.results[0] when multiple barcodes or in certain scan modes
+    // 2. result directly when single barcode
+    let actualResult = result;
+    if (result.results && Array.isArray(result.results) && result.results.length > 0) {
+      console.log('Result has results array, using result.results[0]');
+      actualResult = result.results[0];
+    }
+
+    // Extract textualData and barcodeTypeName
+    const barcodeData = actualResult.textualData || actualResult.data || '';
+    const barcodeType = actualResult.barcodeTypeName || actualResult.type || 'Unknown';
 
     console.log('Barcode type:', barcodeType);
     console.log('Barcode data (raw):', barcodeData);
@@ -161,14 +170,14 @@ const ScanLicense = ({ onLicenseAdded }) => {
     // Check if Barkoder auto-parsed the data (SADL/AAMVA parser)
     let parsedLicenseData = null;
 
-    if (result.extra) {
-      console.log('Result extra data found:', result.extra);
-      parsedLicenseData = result.extra;
+    if (actualResult.extra) {
+      console.log('Result extra data found:', actualResult.extra);
+      parsedLicenseData = actualResult.extra;
     }
 
-    if (result.parsedData) {
-      console.log('Result parsed data found:', result.parsedData);
-      parsedLicenseData = result.parsedData;
+    if (actualResult.parsedData) {
+      console.log('Result parsed data found:', actualResult.parsedData);
+      parsedLicenseData = actualResult.parsedData;
     }
 
     // If we have auto-parsed data from SADL/AAMVA parser, use it
