@@ -53,26 +53,23 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setMaximumResultsCount(1);
         barkoder.setDuplicatesDelayMs(0);
 
-        // Try to enable data formatting and parsing if available
+        // Enable SADL (South African Driver's License) parser
+        // This will automatically parse the encrypted binary data and populate formattedJSON/formattedText fields
         try {
-          if (barkoder.constants.FormattingType && barkoder.setFormattingType) {
-            barkoder.setFormattingType(barkoder.constants.FormattingType.Automatic);
-            console.log('Formatting type set to Automatic');
-          }
-        } catch (e) {
-          console.log('FormattingType not available:', e.message);
-        }
+          console.log('Enabling SADL parser for South African Driver\'s License...');
+          const formattingResult = barkoder.setFormatting(barkoder.constants.Formatting.SADL);
+          console.log('SADL parser enabled, result:', formattingResult);
 
-        // Try to enable parsers if available (SADL for SA licenses, AAMVA for other licenses)
-        try {
-          if (barkoder.enableParser) {
-            console.log('Attempting to enable Barkoder parsers...');
-            // Enable SADL parser for South African Driver's License
-            barkoder.enableParser(true);
-            console.log('Barkoder parsers enabled');
-          }
+          // Also try Automatic formatting as fallback
+          // barkoder.setFormatting(barkoder.constants.Formatting.Automatic);
         } catch (e) {
-          console.log('Parser configuration not available or failed:', e.message);
+          console.error('Failed to enable SADL parser:', e.message);
+          console.log('Falling back to Automatic formatting...');
+          try {
+            barkoder.setFormatting(barkoder.constants.Formatting.Automatic);
+          } catch (e2) {
+            console.error('Automatic formatting also failed:', e2.message);
+          }
         }
 
         // Single scan mode (not continuous)
@@ -170,13 +167,35 @@ const ScanLicense = ({ onLicenseAdded }) => {
     // Check if Barkoder auto-parsed the data (SADL/AAMVA parser)
     let parsedLicenseData = null;
 
-    if (actualResult.extra) {
+    // Check for formattedJSON (primary parsed data field)
+    if (actualResult.formattedJSON) {
+      console.log('Result formattedJSON found (raw):', actualResult.formattedJSON);
+      try {
+        // Parse JSON string to object
+        parsedLicenseData = typeof actualResult.formattedJSON === 'string'
+          ? JSON.parse(actualResult.formattedJSON)
+          : actualResult.formattedJSON;
+        console.log('Parsed formattedJSON:', parsedLicenseData);
+      } catch (e) {
+        console.error('Failed to parse formattedJSON:', e);
+      }
+    }
+
+    // Check for formattedText as fallback
+    if (!parsedLicenseData && actualResult.formattedText) {
+      console.log('Result formattedText found:', actualResult.formattedText);
+      // formattedText is usually a human-readable string representation
+      // We'll log it but may need to parse it depending on format
+    }
+
+    // Legacy field checks (for backwards compatibility)
+    if (!parsedLicenseData && actualResult.extra) {
       console.log('Result extra data found:', actualResult.extra);
       parsedLicenseData = actualResult.extra;
     }
 
-    if (actualResult.parsedData) {
-      console.log('Result parsed data found:', actualResult.parsedData);
+    if (!parsedLicenseData && actualResult.parsedData) {
+      console.log('Result parsedData found:', actualResult.parsedData);
       parsedLicenseData = actualResult.parsedData;
     }
 
