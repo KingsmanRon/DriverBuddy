@@ -1,6 +1,5 @@
 // craco.config.js
 const path = require("path");
-const CopyPlugin = require("copy-webpack-plugin");
 require("dotenv").config();
 
 // Environment variable overrides
@@ -70,18 +69,6 @@ const webpackConfig = {
         asyncWebAssembly: true,
         syncWebAssembly: true,
       };
-
-      // Copy WASM files from node_modules to build output
-      webpackConfig.plugins.push(
-        new CopyPlugin({
-          patterns: [
-            {
-              from: path.resolve(__dirname, 'node_modules/barkoder-wasm/*.wasm'),
-              to: path.resolve(__dirname, 'build/static/js/[name][ext]'),
-            },
-          ],
-        })
-      );
 
       // Add health check plugin to webpack if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
