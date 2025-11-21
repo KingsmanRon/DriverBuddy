@@ -10,6 +10,19 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="DriverBuddy" />
         <title>DriverBuddy - Digital Driver's License</title>
+        <!-- Configure WebAssembly module loader for Barkoder SDK -->
+        <script>
+            // Set up Module configuration before any WASM modules load
+            window.Module = {
+                locateFile: function(path) {
+                    // WASM files are in the public folder, accessible from root
+                    if (path.endsWith('.wasm')) {
+                        return '/' + path;
+                    }
+                    return path;
+                }
+            };
+        </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
         These two scripts have been added for the testing, please do not edit or remove them

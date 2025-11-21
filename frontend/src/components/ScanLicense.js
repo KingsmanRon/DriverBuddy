@@ -28,21 +28,8 @@ const ScanLicense = ({ onLicenseAdded }) => {
           throw new Error('Barkoder license key not found. Please set REACT_APP_BARKODER_LICENSE_KEY in .env file');
         }
 
-        // Configure WASM file location
-        // Tell the SDK where to find the WASM files (they're in the public folder)
-        if (typeof window !== 'undefined') {
-          window.Module = {
-            locateFile: (path) => {
-              // WASM files are in the public folder, accessible from root
-              if (path.endsWith('.wasm')) {
-                return `/${path}`;
-              }
-              return path;
-            }
-          };
-        }
-
         // Initialize Barkoder with license key
+        // Note: Module.locateFile is configured globally in index.html to find WASM files
         const barkoder = await BarkoderSDK.initialize(licenseKey);
 
         console.log('Barkoder SDK initialized successfully');
