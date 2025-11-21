@@ -225,18 +225,38 @@ const ScanLicense = ({ onLicenseAdded }) => {
     console.log('No auto-parsed data, attempting manual parsing...');
     console.log('Raw barcode data to parse:', barcodeData);
 
+    // Check if we have binaryData array (PDF417 often contains binary data)
+    let decodedData = barcodeData;
+    if (actualResult.binaryData && Array.isArray(actualResult.binaryData)) {
+      console.log('Binary data array found, converting to string...');
+      console.log('Binary data length:', actualResult.binaryData.length);
+
+      // Convert binary data array to string
+      // Try different encodings to handle the data correctly
+      try {
+        // Method 1: Direct conversion from byte array
+        decodedData = String.fromCharCode(...actualResult.binaryData);
+        console.log('Decoded data from binary (length:', decodedData.length, ')');
+        console.log('First 200 chars:', decodedData.substring(0, 200));
+      } catch (e) {
+        console.error('Error converting binary data:', e);
+        // Fallback to original textualData if conversion fails
+        decodedData = barcodeData;
+      }
+    }
+
     // Parse the barcode data - SA licenses use PDF417 format
     // The data structure follows AAMVA DL/ID Card Design Standard
 
     // Log the raw data in different formats to understand structure
     console.log('=== RAW BARCODE DATA ANALYSIS ===');
-    console.log('Data as string:', barcodeData);
-    console.log('Data split by newline:', barcodeData.split('\n'));
-    console.log('Data split by carriage return:', barcodeData.split('\r'));
-    console.log('First 200 characters:', barcodeData.substring(0, 200));
+    console.log('Data as string:', decodedData);
+    console.log('Data split by newline:', decodedData.split('\n'));
+    console.log('Data split by carriage return:', decodedData.split('\r'));
+    console.log('First 500 characters:', decodedData.substring(0, 500));
     console.log('================================');
 
-    const lines = barcodeData.split(/[\n\r]+/).filter(line => line.trim());
+    const lines = decodedData.split(/[\n\r]+/).filter(line => line.trim());
     console.log('Total lines after split:', lines.length);
 
     const licenseData = {};
@@ -283,11 +303,11 @@ const ScanLicense = ({ onLicenseAdded }) => {
     // DAK = Postal Code
     // DBC = Gender (1=M, 2=F)
 
-    const surname = licenseData['DCS'] || licenseData['Surname'] || extractField(barcodeData, 'Surname') || 'Unknown';
-    const firstName = licenseData['DAC'] || licenseData['First Name'] || extractField(barcodeData, 'First Name') || '';
-    const initials = licenseData['DAD'] || licenseData['Initials'] || extractField(barcodeData, 'Initials') || '';
-    const licenseNumber = licenseData['DAQ'] || licenseData['License Number'] || extractField(barcodeData, 'License Number') || Date.now().toString();
-    const idNumber = licenseData['DCK'] || licenseData['ID Number'] || extractField(barcodeData, 'ID Number') || '';
+    const surname = licenseData['DCS'] || licenseData['Surname'] || extractField(decodedData, 'Surname') || 'Unknown';
+    const firstName = licenseData['DAC'] || licenseData['First Name'] || extractField(decodedData, 'First Name') || '';
+    const initials = licenseData['DAD'] || licenseData['Initials'] || extractField(decodedData, 'Initials') || '';
+    const licenseNumber = licenseData['DAQ'] || licenseData['License Number'] || extractField(decodedData, 'License Number') || Date.now().toString();
+    const idNumber = licenseData['DCK'] || licenseData['ID Number'] || extractField(decodedData, 'ID Number') || '';
 
     // Construct full name
     const fullName = firstName ? `${firstName} ${surname}` : (initials ? `${initials} ${surname}` : surname);
@@ -301,7 +321,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       return `${ccyy}-${mm}-${dd}`;
     };
 
-    let dateOfBirth = parseDateAAMVA(licenseData['DBB']) || extractField(barcodeData, 'Date of Birth');
+    let dateOfBirth = parseDateAAMVA(licenseData['DBB']) || extractField(decodedData, 'Date of Birth');
 
     // If DOB not found, try to extract from SA ID number (YYMMDD)
     if (!dateOfBirth && idNumber && idNumber.length >= 6) {
@@ -345,7 +365,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       issueDate: issueDate,
       expiryDate: expiryDate,
       barcodeType: barcodeType,
-      scannedData: barcodeData,
+      scannedData: decodedData,
       rawData: licenseData,
       createdAt: new Date().toISOString(),
     };
