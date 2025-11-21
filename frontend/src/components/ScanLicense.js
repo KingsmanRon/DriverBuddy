@@ -149,47 +149,116 @@ const ScanLicense = ({ onLicenseAdded }) => {
     console.log('Result object keys:', Object.keys(result));
     console.log('Full result object:', JSON.stringify(result, null, 2));
 
-    // Get barcode data from result - check multiple possible properties
-    const barcodeData = result.textualData || result.data || result.text || result.rawData || result;
-    const barcodeType = result.barcodeTypeName || result.type || result.symbology || 'Unknown';
+    // Barkoder returns textualData directly for the barcode content
+    const barcodeData = result.textualData || result.data || '';
+    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
 
     console.log('Barcode type:', barcodeType);
     console.log('Barcode data (raw):', barcodeData);
     console.log('Barcode data type:', typeof barcodeData);
     console.log('Barcode data length:', barcodeData?.length || 0);
 
-    // If result has extra data or parsed data, log that too
+    // Check if Barkoder auto-parsed the data (SADL/AAMVA parser)
+    let parsedLicenseData = null;
+
     if (result.extra) {
-      console.log('Result extra data:', result.extra);
+      console.log('Result extra data found:', result.extra);
+      parsedLicenseData = result.extra;
     }
+
     if (result.parsedData) {
-      console.log('Result parsed data:', result.parsedData);
+      console.log('Result parsed data found:', result.parsedData);
+      parsedLicenseData = result.parsedData;
     }
+
+    // If we have auto-parsed data from SADL/AAMVA parser, use it
+    if (parsedLicenseData) {
+      console.log('Using auto-parsed license data from Barkoder');
+
+      const license = {
+        id: Date.now().toString(),
+        licenseNumber: parsedLicenseData.licenseNumber || parsedLicenseData.documentNumber || Date.now().toString(),
+        fullName: parsedLicenseData.fullName || `${parsedLicenseData.firstName || ''} ${parsedLicenseData.lastName || ''}`.trim() || 'Unknown',
+        surname: parsedLicenseData.lastName || parsedLicenseData.surname || 'Unknown',
+        firstName: parsedLicenseData.firstName || parsedLicenseData.givenName || '',
+        initials: parsedLicenseData.initials || '',
+        idNumber: parsedLicenseData.idNumber || parsedLicenseData.nationalId || '',
+        dateOfBirth: parsedLicenseData.birthDate || parsedLicenseData.dateOfBirth || '1990-01-01',
+        address: parsedLicenseData.address || 'South Africa',
+        licenseClass: parsedLicenseData.licenseClass || parsedLicenseData.vehicleClass || 'B',
+        issueDate: parsedLicenseData.issueDate || parsedLicenseData.dateOfIssue || new Date().toISOString().split('T')[0],
+        expiryDate: parsedLicenseData.expiryDate || parsedLicenseData.dateOfExpiry || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        barcodeType: barcodeType,
+        scannedData: barcodeData,
+        parsedData: parsedLicenseData,
+        createdAt: new Date().toISOString(),
+      };
+
+      console.log('Created license object from parsed data:', license);
+
+      // Store in localStorage
+      const licenses = JSON.parse(localStorage.getItem('driverLicenses') || '[]');
+      licenses.push(license);
+      localStorage.setItem('driverLicenses', JSON.stringify(licenses));
+
+      setScanSuccess(true);
+      stopScanning();
+      toast.success(`License scanned: ${license.fullName}`);
+
+      setTimeout(() => {
+        onLicenseAdded?.();
+      }, 1500);
+
+      return;
+    }
+
+    // Fallback: Manual parsing if no auto-parsed data
+    console.log('No auto-parsed data, attempting manual parsing...');
+    console.log('Raw barcode data to parse:', barcodeData);
 
     // Parse the barcode data - SA licenses use PDF417 format
     // The data structure follows AAMVA DL/ID Card Design Standard
-    const lines = barcodeData.split('\n').filter(line => line.trim());
+
+    // Log the raw data in different formats to understand structure
+    console.log('=== RAW BARCODE DATA ANALYSIS ===');
+    console.log('Data as string:', barcodeData);
+    console.log('Data split by newline:', barcodeData.split('\n'));
+    console.log('Data split by carriage return:', barcodeData.split('\r'));
+    console.log('First 200 characters:', barcodeData.substring(0, 200));
+    console.log('================================');
+
+    const lines = barcodeData.split(/[\n\r]+/).filter(line => line.trim());
+    console.log('Total lines after split:', lines.length);
 
     const licenseData = {};
-    lines.forEach(line => {
+    lines.forEach((line, index) => {
+      console.log(`Line ${index}: "${line}"`);
+
       // AAMVA uses 3-letter codes (e.g., DAA, DCS, etc.)
       if (line.length >= 3) {
         const code = line.substring(0, 3);
         const value = line.substring(3).trim();
         if (value) {
           licenseData[code] = value;
+          console.log(`  -> Extracted code: ${code} = ${value}`);
         }
       }
 
       // Also try key:value parsing for other formats
-      const [key, ...valueParts] = line.split(':');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim();
-        licenseData[key.trim()] = value;
+      if (line.includes(':')) {
+        const [key, ...valueParts] = line.split(':');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join(':').trim();
+          licenseData[key.trim()] = value;
+          console.log(`  -> Extracted key:value: ${key.trim()} = ${value}`);
+        }
       }
     });
 
-    console.log('Parsed license data:', licenseData);
+    console.log('=== PARSED LICENSE DATA ===');
+    console.log('All extracted codes:', Object.keys(licenseData));
+    console.log('Full parsed data:', licenseData);
+    console.log('===========================');
 
     // Extract fields using AAMVA standard codes
     // DCS = Last Name/Surname
