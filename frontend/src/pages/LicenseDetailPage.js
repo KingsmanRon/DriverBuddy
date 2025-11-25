@@ -45,6 +45,56 @@ const LicenseDetailPage = () => {
     return new Date(license.expiryDate) < new Date();
   };
 
+  // Convert raw bitmap data to displayable image
+  const convertRawBitmapToImage = (base64String, width, height) => {
+    try {
+      console.log('Converting raw bitmap to image:', width, 'x', height);
+
+      // Decode base64 to binary
+      const binaryString = atob(base64String);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      console.log('Decoded bytes length:', bytes.length);
+      console.log('Expected pixels:', width * height);
+
+      // Create canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Create ImageData for grayscale bitmap
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+
+      // Convert grayscale to RGBA
+      for (let i = 0; i < bytes.length && i < width * height; i++) {
+        const pixelValue = bytes[i];
+        const offset = i * 4;
+        data[offset] = pixelValue;     // R
+        data[offset + 1] = pixelValue; // G
+        data[offset + 2] = pixelValue; // B
+        data[offset + 3] = 255;        // A (fully opaque)
+      }
+
+      // Put image data on canvas
+      ctx.putImageData(imageData, 0, 0);
+
+      // Convert canvas to data URL (PNG format)
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('Successfully converted raw bitmap to PNG');
+      console.log('Result data URL length:', dataUrl.length);
+
+      return dataUrl;
+    } catch (error) {
+      console.error('Error converting raw bitmap:', error);
+      return null;
+    }
+  };
+
   // Detect image format from base64 string and return appropriate data URL
   const getImageDataUrl = (base64String) => {
     if (!base64String) {
@@ -87,19 +137,25 @@ const LicenseDetailPage = () => {
       detectedFormat = 'BMP';
       dataUrl = `data:image/bmp;base64,${cleanBase64}`;
     } else {
-      // Unknown format - might be raw bitmap data
-      console.log('getImageDataUrl: Unknown format detected');
-      console.log('getImageDataUrl: This might be raw bitmap data from SADL');
+      // Unknown format - likely raw bitmap data from SADL
+      console.log('getImageDataUrl: Unknown format detected - attempting raw bitmap conversion');
 
-      // Try to convert raw bitmap to proper image format
-      // For now, try both JPEG and PNG as fallback options
-      detectedFormat = 'Raw/Unknown - trying JPEG first';
-      dataUrl = `data:image/jpeg;base64,${cleanBase64}`;
+      // Try to get dimensions from license data (default to 200x250 for SA licenses)
+      const width = license.imageWidth || 200;
+      const height = license.imageHeight || 250;
+
+      dataUrl = convertRawBitmapToImage(cleanBase64, width, height);
+
+      if (dataUrl) {
+        detectedFormat = 'Raw Bitmap (converted to PNG)';
+      } else {
+        console.error('Failed to convert raw bitmap');
+        return null;
+      }
     }
 
     console.log('getImageDataUrl: Detected format:', detectedFormat);
-    console.log('getImageDataUrl: Final data URL length:', dataUrl.length);
-    console.log('getImageDataUrl: Final data URL start:', dataUrl.substring(0, 100));
+    console.log('getImageDataUrl: Final data URL length:', dataUrl?.length);
 
     return dataUrl;
   };

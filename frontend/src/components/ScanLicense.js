@@ -277,6 +277,8 @@ const ScanLicense = ({ onLicenseAdded }) => {
         expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         gender: gender || '',
         photo: photoBase64 || null, // Base64 encoded photo from barcode
+        imageWidth: imageWidth, // Image width for raw bitmap conversion
+        imageHeight: imageHeight, // Image height for raw bitmap conversion
         barcodeType: barcodeType,
         scannedData: barcodeData,
         parsedData: parsedLicenseData,
