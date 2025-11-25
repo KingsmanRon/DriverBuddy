@@ -93,9 +93,19 @@ const LicenseDetailPage = () => {
 
               <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
-                    <User className="w-12 h-12 text-secondary" />
-                  </div>
+                  {license.photo ? (
+                    <div className="w-32 h-40 rounded-lg overflow-hidden mx-auto mb-4 border-4 border-card shadow-xl">
+                      <img
+                        src={`data:image/jpeg;base64,${license.photo}`}
+                        alt={license.fullName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
+                      <User className="w-12 h-12 text-secondary" />
+                    </div>
+                  )}
                   <h2 className="text-3xl font-display font-bold text-foreground mb-1">
                     {license.fullName}
                   </h2>

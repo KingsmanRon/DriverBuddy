@@ -222,6 +222,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       const expiryDate = getFieldValue('License Expiry Date');
       const gender = getFieldValue('Gender');
       const vehicleCodes = getFieldValue('Vehicle Codes');
+      const photoBase64 = getFieldValue('ImageRawBase64'); // Driver's photo from barcode
 
       // Construct full name from surname and initials
       const fullName = `${initials} ${surname}`.trim() || 'Unknown';
@@ -240,6 +241,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
         issueDate: issueDate || new Date().toISOString().split('T')[0],
         expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         gender: gender || '',
+        photo: photoBase64 || null, // Base64 encoded photo from barcode
         barcodeType: barcodeType,
         scannedData: barcodeData,
         parsedData: parsedLicenseData,
@@ -247,6 +249,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       };
 
       console.log('Created license object from parsed data:', license);
+      console.log('Photo extracted:', photoBase64 ? `Yes (${photoBase64.length} chars)` : 'No');
 
       // Store in localStorage
       const licenses = JSON.parse(localStorage.getItem('driverLicenses') || '[]');
