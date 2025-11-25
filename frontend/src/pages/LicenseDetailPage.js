@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle, Hash, UserCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle, Hash, UserCircle, ChevronDown, AlertCircle } from 'lucide-react';
 
 const LicenseDetailPage = () => {
   const [license, setLicense] = useState(null);
+  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -208,13 +209,18 @@ const LicenseDetailPage = () => {
 
               <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                  <a
-                    href="#license-photo"
+                  <button
+                    onClick={() => {
+                      setIsPhotoExpanded(true);
+                      setTimeout(() => {
+                        document.getElementById('license-photo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }}
                     className="inline-block w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
                     title="View photo"
                   >
                     <User className="w-12 h-12 text-secondary" />
-                  </a>
+                  </button>
                   <h2 className="text-3xl font-display font-bold text-foreground mb-1">
                     {license.fullName}
                   </h2>
@@ -312,17 +318,15 @@ const LicenseDetailPage = () => {
                   </div>
 
                   {/* Vehicle Restrictions */}
-                  {license.restrictions && license.restrictions !== '00' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <CreditCard className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Restrictions</span>
-                      </div>
-                      <p className="text-lg font-bold text-foreground pl-6">
-                        {license.restrictions}
-                      </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Driver Restrictions</span>
                     </div>
-                  )}
+                    <p className="text-lg font-bold text-foreground pl-6">
+                      {license.restrictions || '00'} {(license.restrictions === '00' || !license.restrictions) && <span className="text-sm text-muted-foreground">(None)</span>}
+                    </p>
+                  </div>
 
                   {/* Issue Date */}
                   <div className="space-y-2">
@@ -335,26 +339,36 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
-                  {/* License Photo */}
+                  {/* License Photo - Collapsible */}
                   {license.photo && (
-                    <div className="space-y-2" id="license-photo">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <div className="space-y-2 sm:col-span-2" id="license-photo">
+                      <button
+                        onClick={() => setIsPhotoExpanded(!isPhotoExpanded)}
+                        className="flex items-center gap-2 text-muted-foreground mb-1 hover:text-foreground transition-colors w-full"
+                      >
                         <User className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Photo</span>
-                      </div>
-                      <div className="pl-6">
-                        <div className="w-20 h-24 rounded-md overflow-hidden border-2 border-border shadow-md">
-                          <img
-                            src={getImageDataUrl(license.photo)}
-                            alt={license.fullName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.error('Failed to load photo:', e);
-                              console.log('Photo data length:', license.photo?.length);
-                              console.log('Photo data start:', license.photo?.substring(0, 100));
-                              e.target.style.display = 'none';
-                            }}
-                          />
+                        <span className="text-sm font-semibold">License Photo</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${isPhotoExpanded ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ${isPhotoExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+                      >
+                        <div className="pl-6 pt-2">
+                          <div className="w-20 h-24 rounded-md overflow-hidden border-2 border-border shadow-md">
+                            <img
+                              src={getImageDataUrl(license.photo)}
+                              alt={license.fullName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error('Failed to load photo:', e);
+                                console.log('Photo data length:', license.photo?.length);
+                                console.log('Photo data start:', license.photo?.substring(0, 100));
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -371,12 +385,12 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
-                  {/* Address */}
+                  {/* Issued Country */}
                   {license.address && (
                     <div className="space-y-2 sm:col-span-2">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
                         <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Address</span>
+                        <span className="text-sm font-semibold">Issued Country</span>
                       </div>
                       <p className="text-lg font-bold text-foreground pl-6">
                         {license.address}
