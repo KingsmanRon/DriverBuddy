@@ -45,6 +45,37 @@ const LicenseDetailPage = () => {
     return new Date(license.expiryDate) < new Date();
   };
 
+  // Detect image format from base64 string and return appropriate data URL
+  const getImageDataUrl = (base64String) => {
+    if (!base64String) return null;
+
+    // Remove any whitespace/newlines that might be in the base64 string
+    const cleanBase64 = base64String.replace(/\s/g, '');
+
+    // Check if the base64 string already includes the data URL prefix
+    if (cleanBase64.startsWith('data:image/')) {
+      return cleanBase64;
+    }
+
+    // Detect format from base64 magic bytes (first few characters)
+    // JPEG: /9j/
+    // PNG: iVBORw0KGgo
+    // GIF: R0lGOD
+    // BMP: Qk
+    if (cleanBase64.startsWith('/9j/')) {
+      return `data:image/jpeg;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('iVBORw0KGgo') || cleanBase64.startsWith('iVBORw')) {
+      return `data:image/png;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('R0lGOD')) {
+      return `data:image/gif;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('Qk')) {
+      return `data:image/bmp;base64,${cleanBase64}`;
+    }
+
+    // Default to PNG for SA driver's licenses (most common format)
+    return `data:image/png;base64,${cleanBase64}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <Header />
@@ -96,9 +127,15 @@ const LicenseDetailPage = () => {
                   {license.photo ? (
                     <div className="w-32 h-40 rounded-lg overflow-hidden mx-auto mb-4 border-4 border-card shadow-xl">
                       <img
-                        src={`data:image/jpeg;base64,${license.photo}`}
+                        src={getImageDataUrl(license.photo)}
                         alt={license.fullName}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Failed to load photo:', e);
+                          console.log('Photo data length:', license.photo?.length);
+                          console.log('Photo data start:', license.photo?.substring(0, 100));
+                          e.target.style.display = 'none';
+                        }}
                       />
                     </div>
                   ) : (
