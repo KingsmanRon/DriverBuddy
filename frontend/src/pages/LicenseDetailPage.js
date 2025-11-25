@@ -321,10 +321,10 @@ const LicenseDetailPage = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Driver Restrictions</span>
+                      <span className="text-sm font-semibold">Vehicle Restrictions</span>
                     </div>
                     <p className="text-lg font-bold text-foreground pl-6">
-                      {license.restrictions || '00'} {(license.restrictions === '00' || !license.restrictions) && <span className="text-sm text-muted-foreground">(None)</span>}
+                      {(license.restrictions || '00').trim()} {((license.restrictions || '00').trim() === '00') && <span className="text-sm text-muted-foreground">(None)</span>}
                     </p>
                   </div>
 
@@ -339,12 +339,38 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
-                  {/* License Photo - Collapsible */}
-                  {license.photo && (
-                    <div className="space-y-2 sm:col-span-2" id="license-photo">
+                  {/* Expiry Date */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Expiry Date</span>
+                    </div>
+                    <p className={`text-lg font-bold pl-6 ${isExpired() ? 'text-destructive' : 'text-foreground'}`}>
+                      {formatDate(license.expiryDate)}
+                    </p>
+                  </div>
+
+                  {/* Issued Country */}
+                  {license.address && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Issued Country</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6">
+                        {license.address}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* License Photo - Collapsible - Centered at Bottom */}
+                {license.photo && (
+                  <div className="mt-8 pt-6 border-t border-border" id="license-photo">
+                    <div className="max-w-md mx-auto">
                       <button
                         onClick={() => setIsPhotoExpanded(!isPhotoExpanded)}
-                        className="flex items-center gap-2 text-muted-foreground mb-1 hover:text-foreground transition-colors w-full"
+                        className="flex items-center justify-center gap-2 text-muted-foreground mb-3 hover:text-foreground transition-colors w-full"
                       >
                         <User className="w-4 h-4" />
                         <span className="text-sm font-semibold">License Photo</span>
@@ -355,7 +381,7 @@ const LicenseDetailPage = () => {
                       <div
                         className={`overflow-hidden transition-all duration-300 ${isPhotoExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
                       >
-                        <div className="pl-6 pt-2">
+                        <div className="flex justify-center pt-2">
                           <div className="w-20 h-24 rounded-md overflow-hidden border-2 border-border shadow-md">
                             <img
                               src={getImageDataUrl(license.photo)}
@@ -372,32 +398,8 @@ const LicenseDetailPage = () => {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Expiry Date */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Expiry Date</span>
-                    </div>
-                    <p className={`text-lg font-bold pl-6 ${isExpired() ? 'text-destructive' : 'text-foreground'}`}>
-                      {formatDate(license.expiryDate)}
-                    </p>
                   </div>
-
-                  {/* Issued Country */}
-                  {license.address && (
-                    <div className="space-y-2 sm:col-span-2">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Issued Country</span>
-                      </div>
-                      <p className="text-lg font-bold text-foreground pl-6">
-                        {license.address}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                )}
               </CardContent>
             </Card>
 
