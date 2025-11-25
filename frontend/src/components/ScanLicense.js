@@ -222,7 +222,14 @@ const ScanLicense = ({ onLicenseAdded }) => {
       const expiryDate = getFieldValue('License Expiry Date');
       const gender = getFieldValue('Gender');
       const vehicleCodes = getFieldValue('Vehicle Codes');
-      const photoBase64 = getFieldValue('ImageRawBase64'); // Driver's photo from barcode
+      // Try multiple image field names that might be in the SADL data
+      let photoBase64 = getFieldValue('ImageRawBase64'); // Most common
+      if (!photoBase64) photoBase64 = getFieldValue('Image');
+      if (!photoBase64) photoBase64 = getFieldValue('Photo');
+      if (!photoBase64) photoBase64 = getFieldValue('ImageBase64');
+
+      const imageWidth = parseInt(getFieldValue('Image Width')) || 200;
+      const imageHeight = parseInt(getFieldValue('Image Height')) || 250;
 
       // Debug photo data
       if (photoBase64) {
@@ -230,6 +237,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
         console.log('Photo extracted length:', photoBase64.length);
         console.log('Photo first 100 chars:', photoBase64.substring(0, 100));
         console.log('Photo last 50 chars:', photoBase64.substring(photoBase64.length - 50));
+        console.log('Image dimensions:', imageWidth, 'x', imageHeight);
 
         // Try to detect format from magic bytes
         if (photoBase64.startsWith('/9j/')) {
@@ -240,6 +248,13 @@ const ScanLicense = ({ onLicenseAdded }) => {
           console.log('Format detected: BMP');
         } else {
           console.log('Format: UNKNOWN - first 20 chars:', photoBase64.substring(0, 20));
+          console.log('This appears to be raw bitmap data that needs conversion');
+
+          // Check if this looks like base64 at all (valid base64 characters)
+          const base64Regex = /^[A-Za-z0-9+/=]+$/;
+          if (!base64Regex.test(photoBase64.substring(0, 100))) {
+            console.log('WARNING: Data does not appear to be valid base64');
+          }
         }
         console.log('===========================');
       }

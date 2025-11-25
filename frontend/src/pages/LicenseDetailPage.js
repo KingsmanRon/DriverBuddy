@@ -87,9 +87,14 @@ const LicenseDetailPage = () => {
       detectedFormat = 'BMP';
       dataUrl = `data:image/bmp;base64,${cleanBase64}`;
     } else {
-      // Try all common formats as fallback
-      detectedFormat = 'PNG (default fallback)';
-      dataUrl = `data:image/png;base64,${cleanBase64}`;
+      // Unknown format - might be raw bitmap data
+      console.log('getImageDataUrl: Unknown format detected');
+      console.log('getImageDataUrl: This might be raw bitmap data from SADL');
+
+      // Try to convert raw bitmap to proper image format
+      // For now, try both JPEG and PNG as fallback options
+      detectedFormat = 'Raw/Unknown - trying JPEG first';
+      dataUrl = `data:image/jpeg;base64,${cleanBase64}`;
     }
 
     console.log('getImageDataUrl: Detected format:', detectedFormat);
