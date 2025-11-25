@@ -224,6 +224,26 @@ const ScanLicense = ({ onLicenseAdded }) => {
       const vehicleCodes = getFieldValue('Vehicle Codes');
       const photoBase64 = getFieldValue('ImageRawBase64'); // Driver's photo from barcode
 
+      // Debug photo data
+      if (photoBase64) {
+        console.log('=== PHOTO DATA DEBUGGING ===');
+        console.log('Photo extracted length:', photoBase64.length);
+        console.log('Photo first 100 chars:', photoBase64.substring(0, 100));
+        console.log('Photo last 50 chars:', photoBase64.substring(photoBase64.length - 50));
+
+        // Try to detect format from magic bytes
+        if (photoBase64.startsWith('/9j/')) {
+          console.log('Format detected: JPEG');
+        } else if (photoBase64.startsWith('iVBORw')) {
+          console.log('Format detected: PNG');
+        } else if (photoBase64.startsWith('Qk')) {
+          console.log('Format detected: BMP');
+        } else {
+          console.log('Format: UNKNOWN - first 20 chars:', photoBase64.substring(0, 20));
+        }
+        console.log('===========================');
+      }
+
       // Construct full name from surname and initials
       const fullName = `${initials} ${surname}`.trim() || 'Unknown';
 
