@@ -47,13 +47,22 @@ const LicenseDetailPage = () => {
 
   // Detect image format from base64 string and return appropriate data URL
   const getImageDataUrl = (base64String) => {
-    if (!base64String) return null;
+    if (!base64String) {
+      console.log('getImageDataUrl: No base64 string provided');
+      return null;
+    }
+
+    console.log('getImageDataUrl: Input length:', base64String.length);
+    console.log('getImageDataUrl: First 50 chars:', base64String.substring(0, 50));
 
     // Remove any whitespace/newlines that might be in the base64 string
     const cleanBase64 = base64String.replace(/\s/g, '');
+    console.log('getImageDataUrl: After cleaning, length:', cleanBase64.length);
+    console.log('getImageDataUrl: After cleaning, first 50 chars:', cleanBase64.substring(0, 50));
 
     // Check if the base64 string already includes the data URL prefix
     if (cleanBase64.startsWith('data:image/')) {
+      console.log('getImageDataUrl: Already has data URL prefix');
       return cleanBase64;
     }
 
@@ -62,18 +71,32 @@ const LicenseDetailPage = () => {
     // PNG: iVBORw0KGgo
     // GIF: R0lGOD
     // BMP: Qk
+    let detectedFormat = 'unknown';
+    let dataUrl = null;
+
     if (cleanBase64.startsWith('/9j/')) {
-      return `data:image/jpeg;base64,${cleanBase64}`;
+      detectedFormat = 'JPEG';
+      dataUrl = `data:image/jpeg;base64,${cleanBase64}`;
     } else if (cleanBase64.startsWith('iVBORw0KGgo') || cleanBase64.startsWith('iVBORw')) {
-      return `data:image/png;base64,${cleanBase64}`;
+      detectedFormat = 'PNG';
+      dataUrl = `data:image/png;base64,${cleanBase64}`;
     } else if (cleanBase64.startsWith('R0lGOD')) {
-      return `data:image/gif;base64,${cleanBase64}`;
+      detectedFormat = 'GIF';
+      dataUrl = `data:image/gif;base64,${cleanBase64}`;
     } else if (cleanBase64.startsWith('Qk')) {
-      return `data:image/bmp;base64,${cleanBase64}`;
+      detectedFormat = 'BMP';
+      dataUrl = `data:image/bmp;base64,${cleanBase64}`;
+    } else {
+      // Try all common formats as fallback
+      detectedFormat = 'PNG (default fallback)';
+      dataUrl = `data:image/png;base64,${cleanBase64}`;
     }
 
-    // Default to PNG for SA driver's licenses (most common format)
-    return `data:image/png;base64,${cleanBase64}`;
+    console.log('getImageDataUrl: Detected format:', detectedFormat);
+    console.log('getImageDataUrl: Final data URL length:', dataUrl.length);
+    console.log('getImageDataUrl: Final data URL start:', dataUrl.substring(0, 100));
+
+    return dataUrl;
   };
 
   return (
