@@ -222,6 +222,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       const expiryDate = getFieldValue('License Expiry Date');
       const gender = getFieldValue('Gender');
       const vehicleCodes = getFieldValue('Vehicle Codes');
+      const restrictionCodes = getFieldValue('Driver Restriction Codes');
       // Try multiple image field names that might be in the SADL data
       let photoBase64 = getFieldValue('ImageRawBase64'); // Most common
       if (!photoBase64) photoBase64 = getFieldValue('Image');
@@ -273,6 +274,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
         dateOfBirth: birthdate || '1990-01-01',
         address: 'South Africa', // SADL doesn't include address in barcode
         licenseClass: vehicleCodes || 'B',
+        restrictions: restrictionCodes || '',
         issueDate: issueDate || new Date().toISOString().split('T')[0],
         expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         gender: gender || '',

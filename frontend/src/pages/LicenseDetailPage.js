@@ -208,25 +208,13 @@ const LicenseDetailPage = () => {
 
               <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                  {license.photo ? (
-                    <div className="w-32 h-40 rounded-lg overflow-hidden mx-auto mb-4 border-4 border-card shadow-xl">
-                      <img
-                        src={getImageDataUrl(license.photo)}
-                        alt={license.fullName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error('Failed to load photo:', e);
-                          console.log('Photo data length:', license.photo?.length);
-                          console.log('Photo data start:', license.photo?.substring(0, 100));
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
-                      <User className="w-12 h-12 text-secondary" />
-                    </div>
-                  )}
+                  <a
+                    href="#license-photo"
+                    className="inline-block w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                    title="View photo"
+                  >
+                    <User className="w-12 h-12 text-secondary" />
+                  </a>
                   <h2 className="text-3xl font-display font-bold text-foreground mb-1">
                     {license.fullName}
                   </h2>
@@ -323,6 +311,19 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
+                  {/* Vehicle Restrictions */}
+                  {license.restrictions && license.restrictions !== '00' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Restrictions</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6">
+                        {license.restrictions}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Issue Date */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -333,6 +334,31 @@ const LicenseDetailPage = () => {
                       {formatDate(license.issueDate)}
                     </p>
                   </div>
+
+                  {/* License Photo */}
+                  {license.photo && (
+                    <div className="space-y-2" id="license-photo">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <User className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Photo</span>
+                      </div>
+                      <div className="pl-6">
+                        <div className="w-20 h-24 rounded-md overflow-hidden border-2 border-border shadow-md">
+                          <img
+                            src={getImageDataUrl(license.photo)}
+                            alt={license.fullName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Failed to load photo:', e);
+                              console.log('Photo data length:', license.photo?.length);
+                              console.log('Photo data start:', license.photo?.substring(0, 100));
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Expiry Date */}
                   <div className="space-y-2">
