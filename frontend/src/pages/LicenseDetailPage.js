@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle, Hash, UserCircle } from 'lucide-react';
 
 const LicenseDetailPage = () => {
   const [license, setLicense] = useState(null);
@@ -93,9 +93,19 @@ const LicenseDetailPage = () => {
 
               <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
-                    <User className="w-12 h-12 text-secondary" />
-                  </div>
+                  {license.photo ? (
+                    <div className="w-32 h-40 rounded-lg overflow-hidden mx-auto mb-4 border-4 border-card shadow-xl">
+                      <img
+                        src={`data:image/jpeg;base64,${license.photo}`}
+                        alt={license.fullName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
+                      <User className="w-12 h-12 text-secondary" />
+                    </div>
+                  )}
                   <h2 className="text-3xl font-display font-bold text-foreground mb-1">
                     {license.fullName}
                   </h2>
@@ -107,16 +117,57 @@ const LicenseDetailPage = () => {
                 <Separator className="my-6" />
 
                 <div className="grid sm:grid-cols-2 gap-6">
+                  {/* ID Number */}
+                  {license.idNumber && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <Hash className="w-4 h-4" />
+                        <span className="text-sm font-semibold">ID Number</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6">
+                        {license.idNumber}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* License Number */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                       <CreditCard className="w-4 h-4" />
-                      <span className="text-sm font-semibold">License Class</span>
+                      <span className="text-sm font-semibold">License Number</span>
                     </div>
                     <p className="text-lg font-bold text-foreground pl-6">
-                      Class {license.licenseClass}
+                      {license.licenseNumber}
                     </p>
                   </div>
 
+                  {/* Surname */}
+                  {license.surname && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <User className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Surname</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6">
+                        {license.surname}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Initials */}
+                  {license.initials && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <UserCircle className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Initials</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6">
+                        {license.initials}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Date of Birth */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                       <Calendar className="w-4 h-4" />
@@ -127,6 +178,31 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
+                  {/* Gender */}
+                  {license.gender && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <User className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Gender</span>
+                      </div>
+                      <p className="text-lg font-bold text-foreground pl-6 capitalize">
+                        {license.gender}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* License Class */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <CreditCard className="w-4 h-4" />
+                      <span className="text-sm font-semibold">License Class</span>
+                    </div>
+                    <p className="text-lg font-bold text-foreground pl-6">
+                      Class {license.licenseClass}
+                    </p>
+                  </div>
+
+                  {/* Issue Date */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                       <Calendar className="w-4 h-4" />
@@ -137,6 +213,7 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
+                  {/* Expiry Date */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                       <Calendar className="w-4 h-4" />
@@ -147,6 +224,7 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
+                  {/* Address */}
                   {license.address && (
                     <div className="space-y-2 sm:col-span-2">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">

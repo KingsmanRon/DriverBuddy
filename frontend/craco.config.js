@@ -63,6 +63,13 @@ const webpackConfig = {
         };
       }
 
+      // Set experiments for WebAssembly
+      webpackConfig.experiments = {
+        ...webpackConfig.experiments,
+        asyncWebAssembly: true,
+        syncWebAssembly: true,
+      };
+
       // Add health check plugin to webpack if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
@@ -80,33 +87,54 @@ if (config.enableVisualEdits) {
   };
 }
 
-// Setup dev server with visual edits and/or health check
-if (config.enableVisualEdits || config.enableHealthCheck) {
-  webpackConfig.devServer = (devServerConfig) => {
-    // Apply visual edits dev server setup if enabled
-    if (config.enableVisualEdits && setupDevServer) {
-      devServerConfig = setupDevServer(devServerConfig);
+// Setup dev server with visual edits, health check, and WASM support
+webpackConfig.devServer = (devServerConfig) => {
+  // Apply visual edits dev server setup if enabled
+  if (config.enableVisualEdits && setupDevServer) {
+    devServerConfig = setupDevServer(devServerConfig);
+  }
+
+  // Store original setupMiddlewares for later use
+  const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
+
+  devServerConfig.setupMiddlewares = (middlewares, devServer) => {
+    // Call original setup if exists
+    if (originalSetupMiddlewares) {
+      middlewares = originalSetupMiddlewares(middlewares, devServer);
     }
 
     // Add health check endpoints if enabled
     if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
-      const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
-
-      devServerConfig.setupMiddlewares = (middlewares, devServer) => {
-        // Call original setup if exists
-        if (originalSetupMiddlewares) {
-          middlewares = originalSetupMiddlewares(middlewares, devServer);
-        }
-
-        // Setup health endpoints
-        setupHealthEndpoints(devServer, healthPluginInstance);
-
-        return middlewares;
-      };
+      setupHealthEndpoints(devServer, healthPluginInstance);
     }
 
-    return devServerConfig;
+    // Serve WASM files from node_modules with correct MIME type
+    const fs = require('fs');
+    devServer.app.use((req, res, next) => {
+      if (req.url.endsWith('.wasm')) {
+        const filename = path.basename(req.url);
+        const wasmPath = path.join(__dirname, 'node_modules/barkoder-wasm', filename);
+
+        console.log(`[DevServer] WASM file requested: ${req.url}`);
+        console.log(`[DevServer] Looking for file at: ${wasmPath}`);
+
+        if (fs.existsSync(wasmPath)) {
+          console.log(`[DevServer] Serving WASM file: ${filename}`);
+          res.setHeader('Content-Type', 'application/wasm');
+          res.setHeader('Cache-Control', 'no-cache');
+          fs.createReadStream(wasmPath).pipe(res);
+          return;
+        } else {
+          console.log(`[DevServer] WASM file not found at ${wasmPath}`);
+        }
+      }
+      next();
+    });
+
+    return middlewares;
   };
-}
+
+  return devServerConfig;
+};
 
 module.exports = webpackConfig;

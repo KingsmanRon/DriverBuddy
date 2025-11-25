@@ -1,4 +1,4 @@
-# DriverBuddy - Digital Driver's License App
+# iDriveZA - Digital Driver's License App
 
 A modern, Progressive Web App (PWA) for storing and managing digital driver's licenses with professional-grade PDF417 barcode scanning powered by Barkoder.
 

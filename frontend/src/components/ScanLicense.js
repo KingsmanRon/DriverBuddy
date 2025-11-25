@@ -29,6 +29,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
         }
 
         // Initialize Barkoder with license key
+        // Note: Module.locateFile is configured globally in index.html to find WASM files
         const barkoder = await BarkoderSDK.initialize(licenseKey);
 
         console.log('Barkoder SDK initialized successfully');
@@ -37,19 +38,39 @@ const ScanLicense = ({ onLicenseAdded }) => {
         barkoder.setEnabledDecoders(
           barkoder.constants.Decoders.PDF417,
           barkoder.constants.Decoders.Code128,
-          barkoder.constants.Decoders.Code39,
-          barkoder.constants.Decoders.QR,
-          barkoder.constants.Decoders.DataMatrix,
-          barkoder.constants.Decoders.Aztec
+          barkoder.constants.Decoders.Code39
         );
 
         // Set region of interest (focused scanning area)
         barkoder.setRegionOfInterest(10, 20, 80, 60);
 
         // Configure for better accuracy
-        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Normal);
+        barkoder.setDecodingSpeed(barkoder.constants.DecodingSpeed.Slow); // Use slow for better accuracy
         barkoder.setCameraResolution(barkoder.constants.CameraResolution.FHD);
         barkoder.setRegionOfInterestVisible(true);
+
+        // Enable maximum scanning sensitivity
+        barkoder.setMaximumResultsCount(1);
+        barkoder.setDuplicatesDelayMs(0);
+
+        // Enable SADL (South African Driver's License) parser
+        // This will automatically parse the encrypted binary data and populate formattedJSON/formattedText fields
+        try {
+          console.log('Enabling SADL parser for South African Driver\'s License...');
+          const formattingResult = barkoder.setFormatting(barkoder.constants.Formatting.SADL);
+          console.log('SADL parser enabled, result:', formattingResult);
+
+          // Also try Automatic formatting as fallback
+          // barkoder.setFormatting(barkoder.constants.Formatting.Automatic);
+        } catch (e) {
+          console.error('Failed to enable SADL parser:', e.message);
+          console.log('Falling back to Automatic formatting...');
+          try {
+            barkoder.setFormatting(barkoder.constants.Formatting.Automatic);
+          } catch (e2) {
+            console.error('Automatic formatting also failed:', e2.message);
+          }
+        }
 
         // Single scan mode (not continuous)
         barkoder.setContinuous(false);
@@ -122,38 +143,244 @@ const ScanLicense = ({ onLicenseAdded }) => {
 
   const handleScanResult = (result) => {
     console.log('Processing scan result:', result);
+    console.log('Result object keys:', Object.keys(result));
+    console.log('Full result object:', JSON.stringify(result, null, 2));
 
-    // Get barcode data from result
-    const barcodeData = result.textualData || result.data || result;
-    const barcodeType = result.barcodeTypeName || result.type || 'Unknown';
+    // Barkoder can return results in two ways:
+    // 1. result.results[0] when multiple barcodes or in certain scan modes
+    // 2. result directly when single barcode
+    let actualResult = result;
+    if (result.results && Array.isArray(result.results) && result.results.length > 0) {
+      console.log('Result has results array, using result.results[0]');
+      actualResult = result.results[0];
+    }
+
+    // Extract textualData and barcodeTypeName
+    const barcodeData = actualResult.textualData || actualResult.data || '';
+    const barcodeType = actualResult.barcodeTypeName || actualResult.type || 'Unknown';
 
     console.log('Barcode type:', barcodeType);
-    console.log('Barcode data:', barcodeData);
+    console.log('Barcode data (raw):', barcodeData);
+    console.log('Barcode data type:', typeof barcodeData);
+    console.log('Barcode data length:', barcodeData?.length || 0);
+
+    // Check if Barkoder auto-parsed the data (SADL/AAMVA parser)
+    let parsedLicenseData = null;
+
+    // Check for formattedJSON (primary parsed data field)
+    if (actualResult.formattedJSON) {
+      console.log('Result formattedJSON found (raw):', actualResult.formattedJSON);
+      try {
+        // Parse JSON string to object
+        parsedLicenseData = typeof actualResult.formattedJSON === 'string'
+          ? JSON.parse(actualResult.formattedJSON)
+          : actualResult.formattedJSON;
+        console.log('Parsed formattedJSON:', parsedLicenseData);
+      } catch (e) {
+        console.error('Failed to parse formattedJSON:', e);
+      }
+    }
+
+    // Check for formattedText as fallback
+    if (!parsedLicenseData && actualResult.formattedText) {
+      console.log('Result formattedText found:', actualResult.formattedText);
+      // formattedText is usually a human-readable string representation
+      // We'll log it but may need to parse it depending on format
+    }
+
+    // Legacy field checks (for backwards compatibility)
+    if (!parsedLicenseData && actualResult.extra) {
+      console.log('Result extra data found:', actualResult.extra);
+      parsedLicenseData = actualResult.extra;
+    }
+
+    if (!parsedLicenseData && actualResult.parsedData) {
+      console.log('Result parsedData found:', actualResult.parsedData);
+      parsedLicenseData = actualResult.parsedData;
+    }
+
+    // If we have auto-parsed data from SADL/AAMVA parser, use it
+    if (parsedLicenseData) {
+      console.log('Using auto-parsed license data from Barkoder');
+
+      // Helper function to extract field values from SADL Fields array
+      const getFieldValue = (fieldName) => {
+        if (parsedLicenseData.Fields && Array.isArray(parsedLicenseData.Fields)) {
+          const field = parsedLicenseData.Fields.find(f => f.Field === fieldName);
+          return field?.Value || field?.Values?.[0] || '';
+        }
+        return '';
+      };
+
+      // Extract all fields from SADL parsed data
+      const surname = getFieldValue('Surname');
+      const initials = getFieldValue('Initials');
+      const licenseNumber = getFieldValue('License Number');
+      const idNumber = getFieldValue('ID Number');
+      const birthdate = getFieldValue('Birthdate');
+      const issueDate = getFieldValue('License Issue Date');
+      const expiryDate = getFieldValue('License Expiry Date');
+      const gender = getFieldValue('Gender');
+      const vehicleCodes = getFieldValue('Vehicle Codes');
+      const photoBase64 = getFieldValue('ImageRawBase64'); // Driver's photo from barcode
+
+      // Construct full name from surname and initials
+      const fullName = `${initials} ${surname}`.trim() || 'Unknown';
+
+      const license = {
+        id: Date.now().toString(),
+        licenseNumber: licenseNumber || Date.now().toString(),
+        fullName: fullName,
+        surname: surname || 'Unknown',
+        firstName: initials || '', // SADL doesn't have full first name, only initials
+        initials: initials || '',
+        idNumber: idNumber || '',
+        dateOfBirth: birthdate || '1990-01-01',
+        address: 'South Africa', // SADL doesn't include address in barcode
+        licenseClass: vehicleCodes || 'B',
+        issueDate: issueDate || new Date().toISOString().split('T')[0],
+        expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        gender: gender || '',
+        photo: photoBase64 || null, // Base64 encoded photo from barcode
+        barcodeType: barcodeType,
+        scannedData: barcodeData,
+        parsedData: parsedLicenseData,
+        createdAt: new Date().toISOString(),
+      };
+
+      console.log('Created license object from parsed data:', license);
+      console.log('Photo extracted:', photoBase64 ? `Yes (${photoBase64.length} chars)` : 'No');
+
+      // Store in localStorage
+      const licenses = JSON.parse(localStorage.getItem('driverLicenses') || '[]');
+      licenses.push(license);
+      localStorage.setItem('driverLicenses', JSON.stringify(licenses));
+
+      setScanSuccess(true);
+      stopScanning();
+      toast.success(`License scanned: ${license.fullName}`);
+
+      setTimeout(() => {
+        onLicenseAdded?.();
+      }, 1500);
+
+      return;
+    }
+
+    // Fallback: Manual parsing if no auto-parsed data
+    console.log('No auto-parsed data, attempting manual parsing...');
+    console.log('Raw barcode data to parse:', barcodeData);
+
+    // Check if we have binaryData array (PDF417 often contains binary data)
+    let decodedData = barcodeData;
+    if (actualResult.binaryData && Array.isArray(actualResult.binaryData)) {
+      console.log('Binary data array found, converting to string...');
+      console.log('Binary data length:', actualResult.binaryData.length);
+      console.log('First 20 bytes:', actualResult.binaryData.slice(0, 20));
+
+      // Convert binary data array to Uint8Array for processing
+      const binaryArray = new Uint8Array(actualResult.binaryData);
+
+      try {
+        // Method 1: Try direct UTF-8 decoding
+        const textDecoder = new TextDecoder('utf-8');
+        decodedData = textDecoder.decode(binaryArray);
+        console.log('UTF-8 decoded length:', decodedData.length);
+        console.log('UTF-8 First 200 chars:', decodedData.substring(0, 200));
+
+        // If we only got a few characters, the data might be compressed
+        if (decodedData.length < 50 || decodedData.includes('\ufffd')) {
+          console.log('UTF-8 decode failed or incomplete, trying Latin-1...');
+
+          // Method 2: Try Latin-1 (ISO-8859-1) decoding
+          const latin1Decoder = new TextDecoder('iso-8859-1');
+          decodedData = latin1Decoder.decode(binaryArray);
+          console.log('Latin-1 decoded length:', decodedData.length);
+          console.log('Latin-1 First 200 chars:', decodedData.substring(0, 200));
+        }
+
+        // If still no good data, log the hex dump for analysis
+        if (decodedData.length < 50 || decodedData.trim().length < 20) {
+          console.log('Data appears to be in a special format, logging hex dump...');
+
+          // Log the first bytes as hex for analysis
+          const firstByte = actualResult.binaryData[0];
+          const secondByte = actualResult.binaryData[1];
+
+          console.log(`First two bytes: ${firstByte}, ${secondByte} (0x${firstByte.toString(16)}, 0x${secondByte.toString(16)})`);
+
+          // Log first 100 bytes as hex
+          const hexDump = actualResult.binaryData.slice(0, 100)
+            .map(b => '0x' + b.toString(16).padStart(2, '0'))
+            .join(' ');
+          console.log('First 100 bytes (hex):', hexDump);
+
+          // Check for common compression signatures
+          if ((firstByte === 0x78 && (secondByte === 0x9C || secondByte === 0x01 || secondByte === 0xDA))) {
+            console.log('Detected zlib/deflate compressed data (0x78 0x9C)');
+          } else if (firstByte === 0x1F && secondByte === 0x8B) {
+            console.log('Detected gzip compressed data (0x1F 0x8B)');
+          } else if (firstByte === 0x50 && secondByte === 0x4B) {
+            console.log('Detected ZIP archive data (0x50 0x4B)');
+          } else if (firstByte === 0x01 && secondByte === 0x9B) {
+            console.log('Detected possible proprietary format (0x01 0x9B)');
+          } else {
+            console.log('Unknown binary format - may be proprietary Barkoder encoding');
+          }
+        }
+
+        console.log('Final decoded data from binary (length:', decodedData.length, ')');
+        console.log('Final First 200 chars:', decodedData.substring(0, 200));
+      } catch (e) {
+        console.error('Error converting binary data:', e);
+        // Fallback to original textualData if conversion fails
+        decodedData = barcodeData;
+      }
+    }
 
     // Parse the barcode data - SA licenses use PDF417 format
     // The data structure follows AAMVA DL/ID Card Design Standard
-    const lines = barcodeData.split('\n').filter(line => line.trim());
+
+    // Log the raw data in different formats to understand structure
+    console.log('=== RAW BARCODE DATA ANALYSIS ===');
+    console.log('Data as string:', decodedData);
+    console.log('Data split by newline:', decodedData.split('\n'));
+    console.log('Data split by carriage return:', decodedData.split('\r'));
+    console.log('First 500 characters:', decodedData.substring(0, 500));
+    console.log('================================');
+
+    const lines = decodedData.split(/[\n\r]+/).filter(line => line.trim());
+    console.log('Total lines after split:', lines.length);
 
     const licenseData = {};
-    lines.forEach(line => {
+    lines.forEach((line, index) => {
+      console.log(`Line ${index}: "${line}"`);
+
       // AAMVA uses 3-letter codes (e.g., DAA, DCS, etc.)
       if (line.length >= 3) {
         const code = line.substring(0, 3);
         const value = line.substring(3).trim();
         if (value) {
           licenseData[code] = value;
+          console.log(`  -> Extracted code: ${code} = ${value}`);
         }
       }
 
       // Also try key:value parsing for other formats
-      const [key, ...valueParts] = line.split(':');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim();
-        licenseData[key.trim()] = value;
+      if (line.includes(':')) {
+        const [key, ...valueParts] = line.split(':');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join(':').trim();
+          licenseData[key.trim()] = value;
+          console.log(`  -> Extracted key:value: ${key.trim()} = ${value}`);
+        }
       }
     });
 
-    console.log('Parsed license data:', licenseData);
+    console.log('=== PARSED LICENSE DATA ===');
+    console.log('All extracted codes:', Object.keys(licenseData));
+    console.log('Full parsed data:', licenseData);
+    console.log('===========================');
 
     // Extract fields using AAMVA standard codes
     // DCS = Last Name/Surname
@@ -169,11 +396,11 @@ const ScanLicense = ({ onLicenseAdded }) => {
     // DAK = Postal Code
     // DBC = Gender (1=M, 2=F)
 
-    const surname = licenseData['DCS'] || licenseData['Surname'] || extractField(barcodeData, 'Surname') || 'Unknown';
-    const firstName = licenseData['DAC'] || licenseData['First Name'] || extractField(barcodeData, 'First Name') || '';
-    const initials = licenseData['DAD'] || licenseData['Initials'] || extractField(barcodeData, 'Initials') || '';
-    const licenseNumber = licenseData['DAQ'] || licenseData['License Number'] || extractField(barcodeData, 'License Number') || Date.now().toString();
-    const idNumber = licenseData['DCK'] || licenseData['ID Number'] || extractField(barcodeData, 'ID Number') || '';
+    const surname = licenseData['DCS'] || licenseData['Surname'] || extractField(decodedData, 'Surname') || 'Unknown';
+    const firstName = licenseData['DAC'] || licenseData['First Name'] || extractField(decodedData, 'First Name') || '';
+    const initials = licenseData['DAD'] || licenseData['Initials'] || extractField(decodedData, 'Initials') || '';
+    const licenseNumber = licenseData['DAQ'] || licenseData['License Number'] || extractField(decodedData, 'License Number') || Date.now().toString();
+    const idNumber = licenseData['DCK'] || licenseData['ID Number'] || extractField(decodedData, 'ID Number') || '';
 
     // Construct full name
     const fullName = firstName ? `${firstName} ${surname}` : (initials ? `${initials} ${surname}` : surname);
@@ -187,7 +414,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       return `${ccyy}-${mm}-${dd}`;
     };
 
-    let dateOfBirth = parseDateAAMVA(licenseData['DBB']) || extractField(barcodeData, 'Date of Birth');
+    let dateOfBirth = parseDateAAMVA(licenseData['DBB']) || extractField(decodedData, 'Date of Birth');
 
     // If DOB not found, try to extract from SA ID number (YYMMDD)
     if (!dateOfBirth && idNumber && idNumber.length >= 6) {
@@ -231,7 +458,7 @@ const ScanLicense = ({ onLicenseAdded }) => {
       issueDate: issueDate,
       expiryDate: expiryDate,
       barcodeType: barcodeType,
-      scannedData: barcodeData,
+      scannedData: decodedData,
       rawData: licenseData,
       createdAt: new Date().toISOString(),
     };
@@ -298,45 +525,166 @@ const ScanLicense = ({ onLicenseAdded }) => {
     }
 
     setIsProcessingImage(true);
+    setError(null);
     toast.info('Processing image...');
 
     try {
       console.log('Scanning image file for barcode...');
 
-      // Create a file reader to convert file to data URL
-      const reader = new FileReader();
+      // Temporarily disable ROI for full-image scanning
+      const originalROI = { x: 10, y: 20, width: 80, height: 60 };
+      barkoderInstance.setRegionOfInterest(0, 0, 100, 100);
+      console.log('ROI set to full image for scanning');
 
-      reader.onload = async (e) => {
+      // Create image element to load the file
+      const img = new Image();
+      const imageUrl = URL.createObjectURL(file);
+
+      img.onload = async () => {
         try {
-          const imageData = e.target.result;
+          console.log(`Image loaded: ${img.width}x${img.height}px`);
 
-          // Scan the image using Barkoder
-          barkoderInstance.scanImage(imageData, (result) => {
+          // Function to preprocess and scan image
+          const preprocessAndScan = async (enhanceContrast = false, convertToGrayscale = false) => {
+            // Create canvas to process image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // Upscale small images for better detection (minimum 1000px width)
+            const minWidth = 1000;
+            let targetWidth = img.width;
+            let targetHeight = img.height;
+
+            if (img.width < minWidth) {
+              const scale = minWidth / img.width;
+              targetWidth = minWidth;
+              targetHeight = Math.floor(img.height * scale);
+              console.log(`Upscaling image from ${img.width}x${img.height} to ${targetWidth}x${targetHeight}`);
+            }
+
+            // Set canvas dimensions
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            // Draw image to canvas (with scaling if needed)
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            // Apply image enhancements if requested
+            if (enhanceContrast || convertToGrayscale) {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const data = imageData.data;
+
+              for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                if (convertToGrayscale) {
+                  // Convert to grayscale
+                  const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                  r = g = b = gray;
+                }
+
+                if (enhanceContrast) {
+                  // Increase contrast (factor 1.5)
+                  const factor = 1.5;
+                  r = Math.min(255, Math.max(0, ((r - 128) * factor) + 128));
+                  g = Math.min(255, Math.max(0, ((g - 128) * factor) + 128));
+                  b = Math.min(255, Math.max(0, ((b - 128) * factor) + 128));
+                }
+
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+              }
+
+              ctx.putImageData(imageData, 0, 0);
+              console.log(`Applied enhancements: contrast=${enhanceContrast}, grayscale=${convertToGrayscale}`);
+            }
+
+            // Get image data URL
+            const imageDataURL = canvas.toDataURL('image/png');
+            console.log('Image converted to data URL, scanning...');
+
+            // Scan the image using Barkoder
+            const result = await barkoderInstance.scanImage(imageDataURL);
             console.log('Barkoder image scan result:', result);
 
-            if (result && (result.textualData || result.data)) {
-              handleScanResult(result);
-            } else {
-              throw new Error('No barcode detected in image');
-            }
-          });
+            return result;
+          };
+
+          // Try multiple scanning strategies
+          let result = null;
+
+          // Strategy 1: Original image
+          console.log('Strategy 1: Scanning original/upscaled image...');
+          result = await preprocessAndScan(false, false);
+
+          // Strategy 2: Enhanced contrast if first attempt failed
+          if (!result || result.resultsCount === 0) {
+            console.log('Strategy 2: Scanning with enhanced contrast...');
+            result = await preprocessAndScan(true, false);
+          }
+
+          // Strategy 3: Grayscale + enhanced contrast if still no result
+          if (!result || result.resultsCount === 0) {
+            console.log('Strategy 3: Scanning grayscale with enhanced contrast...');
+            result = await preprocessAndScan(true, true);
+          }
+
+          // Clean up
+          URL.revokeObjectURL(imageUrl);
+
+          // Restore original ROI for camera scanning
+          barkoderInstance.setRegionOfInterest(
+            originalROI.x,
+            originalROI.y,
+            originalROI.width,
+            originalROI.height
+          );
+
+          // Check if barcode was detected
+          if (result && result.resultsCount > 0 && (result.textualData || result.data)) {
+            console.log('Barcode detected successfully');
+            handleScanResult(result);
+            setIsProcessingImage(false);
+          } else {
+            console.warn('No barcode detected after trying all strategies');
+            setError('No PDF417 barcode detected. Please ensure: (1) The barcode is clearly visible and in focus, (2) Good lighting without glare, (3) The image is not blurry.');
+            toast.error('No barcode detected - Try taking a clearer photo');
+            setIsProcessingImage(false);
+          }
         } catch (err) {
           console.error('Image scanning error:', err);
-          toast.error('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+          URL.revokeObjectURL(imageUrl);
+
+          // Restore original ROI
+          barkoderInstance.setRegionOfInterest(
+            originalROI.x,
+            originalROI.y,
+            originalROI.width,
+            originalROI.height
+          );
+
+          setError('Could not detect PDF417 barcode. Ensure the barcode is clearly visible and in focus.');
+          toast.error('Barcode detection failed');
           setIsProcessingImage(false);
         }
       };
 
-      reader.onerror = () => {
-        toast.error('Failed to read image file');
+      img.onerror = () => {
+        console.error('Failed to load image');
+        URL.revokeObjectURL(imageUrl);
+        toast.error('Failed to load image file');
         setIsProcessingImage(false);
       };
 
-      reader.readAsDataURL(file);
+      img.src = imageUrl;
 
     } catch (err) {
       console.error('Image processing error:', err);
-      toast.error('Could not process image. Please try again.');
+      setError('Could not process image. Please try again.');
+      toast.error('Image processing failed');
       setIsProcessingImage(false);
     }
   };

@@ -26,7 +26,7 @@ const Header = () => {
             <SAFlagShield className="w-full h-full" />
           </div>
           <div>
-            <h1 className="text-xl font-display font-bold text-foreground leading-none">DriverBuddy</h1>
+            <h1 className="text-xl font-display font-bold text-foreground leading-none">iDriveZA</h1>
             <p className="text-xs text-muted-foreground">Digital License</p>
           </div>
         </div>
