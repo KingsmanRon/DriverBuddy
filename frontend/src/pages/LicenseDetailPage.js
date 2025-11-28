@@ -46,6 +46,36 @@ const LicenseDetailPage = () => {
     return new Date(license.expiryDate) < new Date();
   };
 
+  // Decode driver restriction codes
+  const getDriverRestrictionDescription = (code) => {
+    const restrictions = {
+      '00': 'None',
+      '01': 'Glasses',
+      '02': 'Artificial limb',
+      '03': 'Automatic transmission only',
+      '04': 'Hearing aid',
+      '05': 'Special vehicle modifications',
+      '06': 'Time restriction',
+      '07': 'Area restriction',
+      '08': 'Physical disability',
+      '09': 'Learner license holder',
+      '10': 'Contact lenses',
+    };
+
+    const trimmedCode = (code || '00').trim();
+    if (trimmedCode === '00') {
+      return 'None';
+    }
+
+    // Handle multiple restriction codes (e.g., "0110" = glasses + contact lenses)
+    if (trimmedCode.length > 2) {
+      const codes = trimmedCode.match(/.{1,2}/g) || [];
+      return codes.map(c => restrictions[c] || c).join(', ');
+    }
+
+    return restrictions[trimmedCode] || trimmedCode;
+  };
+
   // Convert raw bitmap data to displayable image
   const convertRawBitmapToImage = (base64String, width, height) => {
     try {
@@ -313,18 +343,40 @@ const LicenseDetailPage = () => {
                       <span className="text-sm font-semibold">License Class</span>
                     </div>
                     <p className="text-lg font-bold text-foreground pl-6">
-                      Class {license.licenseClass}
+                      {license.licenseClass}
                     </p>
                   </div>
 
                   {/* Vehicle Restrictions */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <AlertCircle className="w-4 h-4" />
+                      <CreditCard className="w-4 h-4" />
                       <span className="text-sm font-semibold">Vehicle Restrictions</span>
                     </div>
                     <p className="text-lg font-bold text-foreground pl-6">
-                      {(license.restrictions || '00').trim()} {((license.restrictions || '00').trim() === '00') && <span className="text-sm text-muted-foreground">(None)</span>}
+                      {license.vehicleRestrictions || license.licenseClass}
+                    </p>
+                  </div>
+
+                  {/* Driver Restrictions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Driver Restrictions</span>
+                    </div>
+                    <p className="text-lg font-bold text-foreground pl-6">
+                      {license.driverRestrictions ? (
+                        <>
+                          {license.driverRestrictions.trim()}{' '}
+                          <span className="text-sm text-muted-foreground">
+                            ({getDriverRestrictionDescription(license.driverRestrictions)})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          00 <span className="text-sm text-muted-foreground">(None)</span>
+                        </>
+                      )}
                     </p>
                   </div>
 
