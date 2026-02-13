@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle, Hash, UserCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User, MapPin, CreditCard, CheckCircle, Hash, UserCircle, ChevronDown, AlertCircle } from 'lucide-react';
 
 const LicenseDetailPage = () => {
   const [license, setLicense] = useState(null);
+  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -43,6 +44,151 @@ const LicenseDetailPage = () => {
 
   const isExpired = () => {
     return new Date(license.expiryDate) < new Date();
+  };
+
+  // Decode driver restriction codes
+  const getDriverRestrictionDescription = (code) => {
+    const restrictions = {
+      '00': 'None',
+      '01': 'Glasses',
+      '02': 'Artificial limb',
+      '03': 'Automatic transmission only',
+      '04': 'Hearing aid',
+      '05': 'Special vehicle modifications',
+      '06': 'Time restriction',
+      '07': 'Area restriction',
+      '08': 'Physical disability',
+      '09': 'Learner license holder',
+      '10': 'Contact lenses',
+    };
+
+    const trimmedCode = (code || '00').trim();
+    if (trimmedCode === '00') {
+      return 'None';
+    }
+
+    // Handle multiple restriction codes (e.g., "0110" = glasses + contact lenses)
+    if (trimmedCode.length > 2) {
+      const codes = trimmedCode.match(/.{1,2}/g) || [];
+      return codes.map(c => restrictions[c] || c).join(', ');
+    }
+
+    return restrictions[trimmedCode] || trimmedCode;
+  };
+
+  // Convert raw bitmap data to displayable image
+  const convertRawBitmapToImage = (base64String, width, height) => {
+    try {
+      console.log('Converting raw bitmap to image:', width, 'x', height);
+
+      // Decode base64 to binary
+      const binaryString = atob(base64String);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      console.log('Decoded bytes length:', bytes.length);
+      console.log('Expected pixels:', width * height);
+
+      // Create canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Create ImageData for grayscale bitmap
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+
+      // Convert grayscale to RGBA
+      for (let i = 0; i < bytes.length && i < width * height; i++) {
+        const pixelValue = bytes[i];
+        const offset = i * 4;
+        data[offset] = pixelValue;     // R
+        data[offset + 1] = pixelValue; // G
+        data[offset + 2] = pixelValue; // B
+        data[offset + 3] = 255;        // A (fully opaque)
+      }
+
+      // Put image data on canvas
+      ctx.putImageData(imageData, 0, 0);
+
+      // Convert canvas to data URL (PNG format)
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('Successfully converted raw bitmap to PNG');
+      console.log('Result data URL length:', dataUrl.length);
+
+      return dataUrl;
+    } catch (error) {
+      console.error('Error converting raw bitmap:', error);
+      return null;
+    }
+  };
+
+  // Detect image format from base64 string and return appropriate data URL
+  const getImageDataUrl = (base64String) => {
+    if (!base64String) {
+      console.log('getImageDataUrl: No base64 string provided');
+      return null;
+    }
+
+    console.log('getImageDataUrl: Input length:', base64String.length);
+    console.log('getImageDataUrl: First 50 chars:', base64String.substring(0, 50));
+
+    // Remove any whitespace/newlines that might be in the base64 string
+    const cleanBase64 = base64String.replace(/\s/g, '');
+    console.log('getImageDataUrl: After cleaning, length:', cleanBase64.length);
+    console.log('getImageDataUrl: After cleaning, first 50 chars:', cleanBase64.substring(0, 50));
+
+    // Check if the base64 string already includes the data URL prefix
+    if (cleanBase64.startsWith('data:image/')) {
+      console.log('getImageDataUrl: Already has data URL prefix');
+      return cleanBase64;
+    }
+
+    // Detect format from base64 magic bytes (first few characters)
+    // JPEG: /9j/
+    // PNG: iVBORw0KGgo
+    // GIF: R0lGOD
+    // BMP: Qk
+    let detectedFormat = 'unknown';
+    let dataUrl = null;
+
+    if (cleanBase64.startsWith('/9j/')) {
+      detectedFormat = 'JPEG';
+      dataUrl = `data:image/jpeg;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('iVBORw0KGgo') || cleanBase64.startsWith('iVBORw')) {
+      detectedFormat = 'PNG';
+      dataUrl = `data:image/png;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('R0lGOD')) {
+      detectedFormat = 'GIF';
+      dataUrl = `data:image/gif;base64,${cleanBase64}`;
+    } else if (cleanBase64.startsWith('Qk')) {
+      detectedFormat = 'BMP';
+      dataUrl = `data:image/bmp;base64,${cleanBase64}`;
+    } else {
+      // Unknown format - likely raw bitmap data from SADL
+      console.log('getImageDataUrl: Unknown format detected - attempting raw bitmap conversion');
+
+      // Try to get dimensions from license data (default to 200x250 for SA licenses)
+      const width = license.imageWidth || 200;
+      const height = license.imageHeight || 250;
+
+      dataUrl = convertRawBitmapToImage(cleanBase64, width, height);
+
+      if (dataUrl) {
+        detectedFormat = 'Raw Bitmap (converted to PNG)';
+      } else {
+        console.error('Failed to convert raw bitmap');
+        return null;
+      }
+    }
+
+    console.log('getImageDataUrl: Detected format:', detectedFormat);
+    console.log('getImageDataUrl: Final data URL length:', dataUrl?.length);
+
+    return dataUrl;
   };
 
   return (
@@ -93,19 +239,18 @@ const LicenseDetailPage = () => {
 
               <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                  {license.photo ? (
-                    <div className="w-32 h-40 rounded-lg overflow-hidden mx-auto mb-4 border-4 border-card shadow-xl">
-                      <img
-                        src={`data:image/jpeg;base64,${license.photo}`}
-                        alt={license.fullName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg">
-                      <User className="w-12 h-12 text-secondary" />
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      setIsPhotoExpanded(true);
+                      setTimeout(() => {
+                        document.getElementById('license-photo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }}
+                    className="inline-block w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mx-auto mb-4 border-4 border-card shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                    title="View photo"
+                  >
+                    <User className="w-12 h-12 text-secondary" />
+                  </button>
                   <h2 className="text-3xl font-display font-bold text-foreground mb-1">
                     {license.fullName}
                   </h2>
@@ -198,7 +343,40 @@ const LicenseDetailPage = () => {
                       <span className="text-sm font-semibold">License Class</span>
                     </div>
                     <p className="text-lg font-bold text-foreground pl-6">
-                      Class {license.licenseClass}
+                      {license.licenseClass}
+                    </p>
+                  </div>
+
+                  {/* Vehicle Restrictions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <CreditCard className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Vehicle Restrictions</span>
+                    </div>
+                    <p className="text-lg font-bold text-foreground pl-6">
+                      {license.vehicleRestrictions || license.licenseClass}
+                    </p>
+                  </div>
+
+                  {/* Driver Restrictions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Driver Restrictions</span>
+                    </div>
+                    <p className="text-lg font-bold text-foreground pl-6">
+                      {license.driverRestrictions ? (
+                        <>
+                          {license.driverRestrictions.trim()}{' '}
+                          <span className="text-sm text-muted-foreground">
+                            ({getDriverRestrictionDescription(license.driverRestrictions)})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          00 <span className="text-sm text-muted-foreground">(None)</span>
+                        </>
+                      )}
                     </p>
                   </div>
 
@@ -224,12 +402,12 @@ const LicenseDetailPage = () => {
                     </p>
                   </div>
 
-                  {/* Address */}
+                  {/* Issued Country */}
                   {license.address && (
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
                         <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Address</span>
+                        <span className="text-sm font-semibold">Issued Country</span>
                       </div>
                       <p className="text-lg font-bold text-foreground pl-6">
                         {license.address}
@@ -237,6 +415,43 @@ const LicenseDetailPage = () => {
                     </div>
                   )}
                 </div>
+
+                {/* License Photo - Collapsible - Centered at Bottom */}
+                {license.photo && (
+                  <div className="mt-8 pt-6 border-t border-border" id="license-photo">
+                    <div className="max-w-md mx-auto">
+                      <button
+                        onClick={() => setIsPhotoExpanded(!isPhotoExpanded)}
+                        className="flex items-center justify-center gap-2 text-muted-foreground mb-3 hover:text-foreground transition-colors w-full"
+                      >
+                        <User className="w-4 h-4" />
+                        <span className="text-sm font-semibold">License Photo</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${isPhotoExpanded ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ${isPhotoExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+                      >
+                        <div className="flex justify-center pt-2">
+                          <div className="w-20 h-24 rounded-md overflow-hidden border-2 border-border shadow-md">
+                            <img
+                              src={getImageDataUrl(license.photo)}
+                              alt={license.fullName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error('Failed to load photo:', e);
+                                console.log('Photo data length:', license.photo?.length);
+                                console.log('Photo data start:', license.photo?.substring(0, 100));
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

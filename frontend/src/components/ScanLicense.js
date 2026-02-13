@@ -222,7 +222,43 @@ const ScanLicense = ({ onLicenseAdded }) => {
       const expiryDate = getFieldValue('License Expiry Date');
       const gender = getFieldValue('Gender');
       const vehicleCodes = getFieldValue('Vehicle Codes');
-      const photoBase64 = getFieldValue('ImageRawBase64'); // Driver's photo from barcode
+      const restrictionCodes = getFieldValue('Driver Restriction Codes');
+      // Try multiple image field names that might be in the SADL data
+      let photoBase64 = getFieldValue('ImageRawBase64'); // Most common
+      if (!photoBase64) photoBase64 = getFieldValue('Image');
+      if (!photoBase64) photoBase64 = getFieldValue('Photo');
+      if (!photoBase64) photoBase64 = getFieldValue('ImageBase64');
+
+      const imageWidth = parseInt(getFieldValue('Image Width')) || 200;
+      const imageHeight = parseInt(getFieldValue('Image Height')) || 250;
+
+      // Debug photo data
+      if (photoBase64) {
+        console.log('=== PHOTO DATA DEBUGGING ===');
+        console.log('Photo extracted length:', photoBase64.length);
+        console.log('Photo first 100 chars:', photoBase64.substring(0, 100));
+        console.log('Photo last 50 chars:', photoBase64.substring(photoBase64.length - 50));
+        console.log('Image dimensions:', imageWidth, 'x', imageHeight);
+
+        // Try to detect format from magic bytes
+        if (photoBase64.startsWith('/9j/')) {
+          console.log('Format detected: JPEG');
+        } else if (photoBase64.startsWith('iVBORw')) {
+          console.log('Format detected: PNG');
+        } else if (photoBase64.startsWith('Qk')) {
+          console.log('Format detected: BMP');
+        } else {
+          console.log('Format: UNKNOWN - first 20 chars:', photoBase64.substring(0, 20));
+          console.log('This appears to be raw bitmap data that needs conversion');
+
+          // Check if this looks like base64 at all (valid base64 characters)
+          const base64Regex = /^[A-Za-z0-9+/=]+$/;
+          if (!base64Regex.test(photoBase64.substring(0, 100))) {
+            console.log('WARNING: Data does not appear to be valid base64');
+          }
+        }
+        console.log('===========================');
+      }
 
       // Construct full name from surname and initials
       const fullName = `${initials} ${surname}`.trim() || 'Unknown';
@@ -238,10 +274,14 @@ const ScanLicense = ({ onLicenseAdded }) => {
         dateOfBirth: birthdate || '1990-01-01',
         address: 'South Africa', // SADL doesn't include address in barcode
         licenseClass: vehicleCodes || 'B',
+        vehicleRestrictions: vehicleCodes || '', // Vehicle codes (license classes)
+        driverRestrictions: restrictionCodes || '', // Driver restriction codes
         issueDate: issueDate || new Date().toISOString().split('T')[0],
         expiryDate: expiryDate || new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         gender: gender || '',
         photo: photoBase64 || null, // Base64 encoded photo from barcode
+        imageWidth: imageWidth, // Image width for raw bitmap conversion
+        imageHeight: imageHeight, // Image height for raw bitmap conversion
         barcodeType: barcodeType,
         scannedData: barcodeData,
         parsedData: parsedLicenseData,

@@ -91,19 +91,9 @@ const LicensesPage = () => {
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                       <div className="flex items-center gap-4">
-                        {license.photo ? (
-                          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md border-2 border-primary/20">
-                            <img
-                              src={`data:image/jpeg;base64,${license.photo}`}
-                              alt={license.fullName}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md">
-                            <CreditCard className="w-7 h-7 text-white" />
-                          </div>
-                        )}
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md">
+                          <CreditCard className="w-7 h-7 text-white" />
+                        </div>
                         <div>
                           <h3 className="text-xl font-display font-bold text-foreground">
                             {license.fullName}
